@@ -307,6 +307,49 @@
                         </div>
                     </div>
                 </div>
+                <div class="carousel-wrapper">
+                    <button class="carousel-btn prev" onclick="moveSlide(-1)">❮</button>
+                    
+                    <h3 class="carousel-title">Certificates & Documentation</h3>
+                    <div class="carousel-wrapper">
+                        <div class="carousel-track" id="certCarousel">
+                            <div class="carousel-card">
+                                <img src="/static/img/achievement-rank.png" alt="Sertifikat 1">
+                                <p>2nd Overall Rank</p>
+                            </div>
+                            <div class="carousel-card">
+                                <img src="/static/img/achievement-apbd.jpg" alt="Sertifikat 2">
+                                <p>2024 APBD Stage 2 Finalist</p>
+                            </div>
+                            <div class="carousel-card">
+                                <img src="/static/img/achievement-garuda.jpg" alt="Sertifikat 3">
+                                <p>Eagle Scout</p>
+                            </div>
+                            <div class="carousel-card">
+                                <img src="/static/img/achievement-speech.jpg" alt="Sertifikat 4">
+                                <p>1st Place Speech</p>
+                            </div>
+                            <div class="carousel-card">
+                                <img src="/static/img/achievement-tempas-sindir.jpg" alt="Sertifikat 5">
+                                <p>1st Place Tempas Sindir</p>
+                            </div>
+                            <div class="carousel-card">
+                                <img src="/static/img/achievement-prs.jpg" alt="Sertifikat 6">
+                                <p>2nd Place PRS</p>
+                            </div>
+                            <div class="carousel-card">
+                                <img src="/static/img/achievement-dai-2024.jpg" alt="Sertifikat 7">
+                                <p>2nd Place Da'i Contest</p>
+                            </div>
+                            <div class="carousel-card">
+                                <img src="/static/img/achievement-dai-2022.jpg" alt="Sertifikat 8">
+                                <p>2nd Place Da'i Contest</p>
+                            </div>
+                        </div>
+
+                        <button class="carousel-btn next" onclick="moveSlide(1)">❯</button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -383,6 +426,15 @@
                 behavior: 'smooth'
             });
         });
+
+        function moveSlide(direction) {
+            const track = document.getElementById('certCarousel');
+            const scrollAmount = 220; // Jarak geser (lebar kartu + gap)
+            track.scrollBy({
+                left: direction * scrollAmount,
+                behavior: 'smooth'
+            });
+        }
     </script>
 </body>
 </html>

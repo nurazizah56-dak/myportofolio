@@ -361,5 +361,28 @@
             <p>&copy; 2026 Nur Azizah. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
         </div>
     </footer>
+
+    <!-- Tombol Back to Top -->
+    <button id="backToTop" class="back-to-top" aria-label="Back to top">↑</button>
+    <script>
+        const backToTopBtn = document.getElementById('backToTop');
+
+        // Tampilkan tombol saat scroll melebihi 300px
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        });
+
+        // Scroll ke atas saat tombol diklik
+        backToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
 </body>
 </html>

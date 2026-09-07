@@ -457,7 +457,7 @@ h1, .brand {
     transform: scale(1.05);
 }
 
-/* === Responsive - Mobile (Skills & Certifications) === */
+/* === Responsive - Mobile (Skills & Certifications &  Back to Top) === */
 @media (max-width: 600px) {
     .skills-chart {
         gap: 0.75rem;
@@ -479,6 +479,14 @@ h1, .brand {
         width: 100%;
         max-width: 200px;
     }
+
+    .back-to-top {
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        right: 20px;
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+    }
 }
 
 /* === Print - Force background colors to show (fixes invisible skill bars in PDF export) === */
@@ -499,4 +507,45 @@ h1, .brand {
         flex-direction: column;
         align-items: flex-start;
     }
+}
+
+/* Efek scroll halus untuk seluruh halaman */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Styling Tombol Back to Top */
+.back-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background-color: #d95d39;
+    color: #fff;
+    border: none;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+.back-to-top.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.back-to-top:hover {
+    transform: translateY(-4px);
+    background-color: #333;
+}
+
+/* Efek pas tombol di-tap di layar HP */
+.back-to-top:active {
+    transform: scale(0.92);
 }

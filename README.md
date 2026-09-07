@@ -24,7 +24,7 @@ git clone https://github.com/nurazizah56-dak/myportofolio
 cd myportofolio
 
 2. Aktifkan virtual environment
-env\Scripts\activate
+.\env\Scripts\Activate.ps1
 
 3. Install dependencies
 pip install -r requirements.txt

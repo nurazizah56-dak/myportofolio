@@ -195,13 +195,14 @@ h1, .brand {
 }
 
 .education h2,
-.experience h2 {
+.experience h2,
+.achievements h2 {
     font-family: "Space Grotesk", -apple-system, sans-serif;
     margin-bottom: 2rem;
     color: var(--ink);
 }
 
-.education, .experience {
+.education, .experience, .achievements {
     padding: 3rem 0;
     border-top: 1px solid var(--line);
 }
@@ -316,8 +317,62 @@ h1, .brand {
     margin-bottom: 0.3rem;
 }
 
+/* Achievements - List */
+.achievements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    transition: background-color 0.2s ease;
+}
+
+.achievement-item:hover {
+    background-color: rgba(217, 93, 57, 0.08);
+}
+
+.achievement-icon {
+    font-size: 1.75rem;
+}
+
+.achievement-category {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent-dark);
+    margin: 2rem 0 1rem;
+}
+
+.achievement-category:first-of-type {
+    margin-top: 1rem;
+}
+
+.achievement-year {
+    font-size: 0.8rem;
+    color: var(--accent-dark);
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+
+.achievement-item h4 {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
 @media (max-width: 700px) {
     .education-grid {
         grid-template-columns: 1fr;
+    }
+
+    .achievement-item {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

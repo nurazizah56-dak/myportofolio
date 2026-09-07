@@ -194,17 +194,18 @@ h1, .brand {
     }
 }
 
-/* Shared section styles (Education, Skills, Experience, Achievements) */
+/* Shared section styles (Education, Skills, Experience, Achievements, Certifications) */
 .education h2,
 .experience h2,
 .achievements h2,
-.skills h2 {
+.skills h2,
+.certifications h2 {
     font-family: "Space Grotesk", -apple-system, sans-serif;
     margin-bottom: 2rem;
     color: var(--ink);
 }
 
-.education, .experience, .achievements, .skills {
+.education, .experience, .achievements, .skills, .certifications {
     padding: 3rem 0;
     border-top: 1px solid var(--line);
 }
@@ -385,8 +386,9 @@ h1, .brand {
     margin-bottom: 0.3rem;
 }
 
-/* === Achievements - List === */
-.achievements-list {
+/* === Achievements & Cerifications - List === */
+.achievements-list,
+.cert-list {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -397,10 +399,12 @@ h1, .brand {
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem;
+    padding: 1rem 1.25rem;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    transition: background-color 0.2s ease;
+    background-color: var(--paper);
+    backdrop-filter: blur(6px);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .achievement-item:hover,
@@ -436,7 +440,24 @@ h1, .brand {
     margin-bottom: 0.25rem;
 }
 
-/* === Responsive - Mobile (Skills) === */
+.cert-info {
+    flex: 1; 
+}
+
+.cert-preview {
+    width: 140px; 
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0; 
+    transition: transform 0.2s ease;
+}
+
+.cert-preview:hover {
+    transform: scale(1.05);
+}
+
+/* === Responsive - Mobile (Skills & Certifications) === */
 @media (max-width: 600px) {
     .skills-chart {
         gap: 0.75rem;
@@ -449,6 +470,14 @@ h1, .brand {
 
     .skill-name {
         font-size: 0.6rem;
+    }
+
+    .cert-item {
+        flex-wrap: wrap;
+    }
+    .cert-preview {
+        width: 100%;
+        max-width: 200px;
     }
 }
 

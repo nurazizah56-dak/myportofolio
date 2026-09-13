@@ -2,15 +2,23 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from main.models import Experience
+from main.models import Experience, Education
 
 
 class MainTest(TestCase):
     def setUp(self):
         self.experience = Experience.objects.create(
-            title="Asisten Dosen PBP",
-            description="Membantu mahasiswa memahami pengembangan web.",
+            title="Teaching Assistant for Business and Technical Communication (KOMBISTEK)",
+            description="Assisted lecturers in evaluating assignments and mentoring students in professional communication.",
             category="part-time",
+        )
+
+        self.education = Education.objects.create(
+        institution_name="Universitas Indonesia",
+        degree="Bachelor of Information Systems",
+        location="Depok, West Java",
+        maps_url="https://maps.app.goo.gl/NcpBNCfPGqhKCqtk8",
+        start_year=2025,
         )
 
     def test_main_url_is_accessible(self):
@@ -26,8 +34,9 @@ class MainTest(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+
     def test_experience_model(self):
-        self.assertEqual(str(self.experience), "Asisten Dosen PBP")
+        self.assertEqual(str(self.experience), self.experience.title)
         self.assertEqual(self.experience.category, "part-time")
         self.assertTrue(self.experience.is_ongoing)
 
@@ -56,3 +65,25 @@ class MainTest(TestCase):
         self.assertFalse(self.experience.is_ongoing)
         self.assertContains(response, "Selesai")
         self.assertNotContains(response, "Sedang berlangsung")
+
+
+    def test_education_url_is_accessible(self):
+        response = self.client.get(reverse("main:show_education"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "education.html")
+
+    def test_education_page_shows_data(self):
+        response = self.client.get(reverse("main:show_education"))
+        self.assertContains(response, self.education.institution_name)
+        self.assertContains(response, self.education.degree)
+        self.assertContains(response, self.education.location)
+
+    def test_empty_education_page(self):
+        Education.objects.all().delete()
+        response = self.client.get(reverse("main:show_education"))
+        self.assertContains(response, "Belum ada riwayat pendidikan yang ditambahkan.")
+
+    def test_education_is_ongoing(self):
+        self.assertTrue(self.education.is_ongoing)
+        response = self.client.get(reverse("main:show_education"))
+        self.assertContains(response, "Present")

@@ -31,7 +31,7 @@ class Education(models.Model):
     degree = models.CharField(max_length=255)
     location = models.CharField(max_length=255, blank=True)
     maps_url = models.URLField(blank=True, null=True)
-    logo = models.URLField(blank=True, null=True)
+    logo = models.CharField(max_length=255, blank=True, null=True)
     start_year = models.PositiveIntegerField()
     end_year = models.PositiveIntegerField(blank=True, null=True)
 

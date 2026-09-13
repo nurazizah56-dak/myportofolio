@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ name }} - Portofolio</title>
+    <title>Education - {{ name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 <body>
     <header class="site-header">
         <div class="container">
-           <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
+            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
             <nav>
                 <a href="{% url 'main:show_main' %}">Profile</a>
                 <a href="{% url 'main:show_education' %}">Education</a>
@@ -25,37 +25,35 @@
     </header>
 
     <main>
-    <section class="experience-section" id="experience">
-        <div class="container">
-            <p class="section-kicker">Perjalanan saya sejauh ini</p>
-            <h1>Experience</h1>
+        <section class="education" id="education">
+            <div class="container">
+                <p class="section-kicker">Riwayat pendidikan saya</p>
+                <h1>Education</h1>
 
-            <div class="experience-grid">
-                {% for experience in experience_list %}
-                    <article class="experience-card">
-                        <span class="experience-category">
-                            {{ experience.get_category_display }}
-                        </span>
-                        <h2>{{ experience.title }}</h2>
-                        <p class="experience-description">
-                            {{ experience.description }}
-                        </p>
-
-                        {% if experience.is_ongoing %}
-                            <p class="experience-status">Sedang berlangsung</p>
-                        {% else %}
-                            <p class="experience-status">Selesai</p>
-                        {% endif %}
-                    </article>
-                {% empty %}
-                    <p class="empty-state">
-                        Belum ada pengalaman yang ditambahkan.
-                    </p>
-                {% endfor %}
+                <div class="education-grid">
+                    {% for edu in education_list %}
+                        <div class="education-card">
+                            {% if edu.logo %}
+                                <img src="{{ edu.logo }}" alt="{{ edu.institution_name }}" class="education-img">
+                            {% endif %}
+                            <h3>{{ edu.institution_name }}</h3>
+                            <p class="education-degree">{{ edu.degree }}</p>
+                            {% if edu.maps_url %}
+                                <a href="{{ edu.maps_url }}" class="education-address" target="_blank" rel="noopener noreferrer">{{ edu.location }}</a>
+                            {% else %}
+                                <p class="education-address">{{ edu.location }}</p>
+                            {% endif %}
+                            <p class="education-year">
+                                {{ edu.start_year }} - {% if edu.is_ongoing %}Present{% else %}{{ edu.end_year }}{% endif %}
+                            </p>
+                        </div>
+                    {% empty %}
+                        <p class="empty-state">Belum ada riwayat pendidikan yang ditambahkan.</p>
+                    {% endfor %}
+                </div>
             </div>
-        </div>
-    </section>
-</main>
+        </section>
+    </main>
 
     <footer class="site-footer">
         <div class="container">
@@ -63,12 +61,9 @@
         </div>
     </footer>
 
-    <!-- Tombol Back to Top -->
     <button id="backToTop" class="back-to-top" aria-label="Back to top">↑</button>
     <script>
         const backToTopBtn = document.getElementById('backToTop');
-
-        // Tampilkan tombol saat scroll melebihi 300px
         window.addEventListener('scroll', () => {
             if (window.scrollY > 300) {
                 backToTopBtn.classList.add('show');
@@ -76,13 +71,8 @@
                 backToTopBtn.classList.remove('show');
             }
         });
-
-        // Scroll ke atas saat tombol diklik
         backToTopBtn.addEventListener('click', () => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     </script>
 </body>

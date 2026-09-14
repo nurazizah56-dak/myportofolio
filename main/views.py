@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from main.models import Experience, Education, Skill
+from main.models import Experience, Education, Skill, Achievement
 
 
 def show_main(request):
@@ -38,3 +38,12 @@ def show_skills(request):
         "hard_skills": Skill.objects.filter(category='hard'),
     }
     return render(request, "skills.html", context)
+
+def show_achievements(request):
+    context = {
+        "name": "Nur Azizah",
+        "academic_achievements": Achievement.objects.filter(category='academic').order_by('-year'),
+        "non_academic_achievements": Achievement.objects.filter(category='non_academic').order_by('-year'),
+        "carousel_items": Achievement.objects.exclude(image__isnull=True).exclude(image__exact=''),
+    }
+    return render(request, "achievements.html", context)

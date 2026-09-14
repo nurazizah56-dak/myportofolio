@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Achievements - {{ name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
+            <nav>
+                <a href="{% url 'main:show_main' %}">Profile</a>
+                <a href="{% url 'main:show_education' %}">Education</a>
+                <a href="{% url 'main:show_skills' %}">Skills</a>
+                <a href="{% url 'main:show_experience' %}">Experience</a>
+                <a href="{% url 'main:show_achievements' %}">Achievements</a>
+                <a href="{% url 'main:show_main' %}#certifications">Certifications</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="achievements" id="achievements">
+            <div class="container">
+                <h1>Achievements</h1>
+
+                <h3 class="achievement-category">A. Academic</h3>
+                <div class="achievements-list">
+                    {% for item in academic_achievements %}
+                        <div class="achievement-item">
+                            <span class="achievement-icon">{{ item.icon }}</span>
+                            <div>
+                                <p class="achievement-year">{{ item.year }}</p>
+                                <h4>{{ item.title }}</h4>
+                                <p>{{ item.description }}</p>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="empty-state">Belum ada pencapaian akademik.</p>
+                    {% endfor %}
+                </div>
+
+                <h3 class="achievement-category">B. Non Academic</h3>
+                <div class="achievements-list">
+                    {% for item in non_academic_achievements %}
+                        <div class="achievement-item">
+                            <span class="achievement-icon">{{ item.icon }}</span>
+                            <div>
+                                <p class="achievement-year">{{ item.year }}</p>
+                                <h4>{{ item.title }}</h4>
+                                <p>{{ item.description }}</p>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="empty-state">Belum ada pencapaian non-akademik.</p>
+                    {% endfor %}
+                </div>
+
+                {% if carousel_items %}
+                <div class="carousel-wrapper">
+                    <button class="carousel-btn prev" onclick="moveSlide(-1)">❮</button>
+                    <h3 class="carousel-title">Certificates & Documentation</h3>
+                    <div class="carousel-wrapper">
+                        <div class="carousel-track" id="certCarousel">
+                            {% for item in carousel_items %}
+                                <div class="carousel-card">
+                                    <img src="{{ item.image }}" alt="{{ item.title }}">
+                                    <p>{{ item.title }}</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <button class="carousel-btn next" onclick="moveSlide(1)">❯</button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2026 {{ name }}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+        </div>
+    </footer>
+
+    <button id="backToTop" class="back-to-top" aria-label="Back to top">↑</button>
+    <script>
+        const backToTopBtn = document.getElementById('backToTop');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) backToTopBtn.classList.add('show');
+            else backToTopBtn.classList.remove('show');
+        });
+        backToTopBtn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        function moveSlide(direction) {
+            const track = document.getElementById('certCarousel');
+            if (track) {
+                const scrollAmount = 220;
+                track.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+            }
+        }
+    </script>
+</body>
+</html>

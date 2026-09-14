@@ -1,8 +1,9 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import escape
 
-from main.models import Experience, Education, Skill
+from main.models import Experience, Education, Skill, Achievement
 
 
 class MainTest(TestCase):
@@ -25,6 +26,21 @@ class MainTest(TestCase):
         category="soft",
         name="Teamwork & Leadership",
         score=9.5,
+        )
+
+        self.achievement = Achievement.objects.create(
+            title="Juara 1 Hackathon",
+            description="Lomba Pemrograman Web",
+            year=2025,
+            category="academic"
+        )
+
+        self.achievement_with_image = Achievement.objects.create(
+            title="Eagle Scout",
+            description="Tambun Selatan District Scout Council",
+            year=2024,
+            category="non_academic",
+            image="/static/images/scout_cert.png"
         )
 
     def test_main_url_is_accessible(self):
@@ -108,3 +124,32 @@ class MainTest(TestCase):
         Skill.objects.all().delete()
         response = self.client.get(reverse("main:show_skills"))
         self.assertContains(response, "Belum ada soft skill yang ditambahkan.")
+
+    def test_achievements_page_is_accessible(self):
+        response = self.client.get(reverse("main:show_achievements"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "achievements.html")
+
+    def test_achievements_page_shows_data(self):
+        response = self.client.get(reverse("main:show_achievements"))
+        self.assertContains(response, escape(self.achievement.title))
+        self.assertContains(response, escape(self.achievement.description))
+        self.assertContains(response, str(self.achievement.year))
+
+    def test_achievement_category_separation(self):
+        response = self.client.get(reverse("main:show_achievements"))
+        self.assertContains(response, escape(self.achievement.title))
+        self.assertContains(response, escape(self.achievement_with_image.title))
+
+    def test_achievement_carousel_shows_only_items_with_image(self):
+        response = self.client.get(reverse("main:show_achievements"))
+        self.assertContains(response, self.achievement_with_image.image)
+
+    def test_empty_achievements_page(self):
+        Achievement.objects.all().delete()
+        response = self.client.get(reverse("main:show_achievements"))
+        self.assertContains(response, "Belum ada pencapaian akademik.")
+        self.assertContains(response, "Belum ada pencapaian non-akademik.")
+
+    def test_achievement_model_str(self):
+        self.assertEqual(str(self.achievement), self.achievement.title)

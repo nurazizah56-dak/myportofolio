@@ -42,7 +42,6 @@ class Education(models.Model):
     def is_ongoing(self):
         return self.end_year is None
 
-
 class Skill(models.Model):
     CATEGORY_CHOICES = [
         ('soft', 'Soft Skill'),
@@ -65,4 +64,21 @@ class Skill(models.Model):
     def percentage(self):
         return float(self.score) * 10
 
+class Achievement(models.Model):
+    CATEGORY_CHOICES = [
+        ('academic', 'Academic'),
+        ('non_academic', 'Non Academic'),
+    ]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    year = models.PositiveIntegerField()
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='academic')
+    icon = models.CharField(max_length=10, default='🏆')
+    image = models.CharField(max_length=255, blank=True, null=True, help_text="Path gambar sertifikat untuk carousel")
 
+    class Meta:
+        ordering = ['-year']
+
+    def __str__(self):
+        return self.title

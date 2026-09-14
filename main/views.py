@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from main.models import Experience, Education, Skill, Achievement
+from main.models import Experience, Education, Skill, Achievement, Certification
 
 
 def show_main(request):
@@ -47,3 +47,10 @@ def show_achievements(request):
         "carousel_items": Achievement.objects.exclude(image__isnull=True).exclude(image__exact=''),
     }
     return render(request, "achievements.html", context)
+
+def show_certifications(request):
+    context = {
+        "name": "Nur Azizah",
+        "certification_list": Certification.objects.all(),
+    }
+    return render(request, "certifications.html", context)

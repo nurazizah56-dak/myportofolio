@@ -82,3 +82,18 @@ class Achievement(models.Model):
 
     def __str__(self):
         return self.title
+
+class Certification(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    issuer = models.CharField(max_length=255)
+    date_range = models.CharField(max_length=100, help_text="Contoh: July 2025 - July 2027")
+    description = models.TextField(blank=True)
+    icon = models.CharField(max_length=10, default='📜')
+    image = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta: 
+        ordering = ['title'] 
+
+    def __str__(self):
+        return self.title

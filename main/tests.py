@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape
 
-from main.models import Experience, Education, Skill, Achievement
+from main.models import Experience, Education, Skill, Achievement, Certification
 
 
 class MainTest(TestCase):
@@ -41,6 +41,15 @@ class MainTest(TestCase):
             year=2024,
             category="non_academic",
             image="/static/images/scout_cert.png"
+        )
+
+        self.ukbi_cert = Certification.objects.create(
+        title='Indonesian Language Proficiency Test (UKBI)',
+        issuer='Agency for Language Development and Cultivation',
+        date_range='July 2025 - July 2027',
+        description='Achieved "Sangat Unggul" (Very Excellent) rating with a score of 688/800',
+        icon='📜',
+        image='/static/img/cert-ukbi.png',
         )
 
     def test_main_url_is_accessible(self):
@@ -153,3 +162,18 @@ class MainTest(TestCase):
 
     def test_achievement_model_str(self):
         self.assertEqual(str(self.achievement), self.achievement.title)
+
+    def test_certifications_url_and_template(self):
+        response = self.client.get(reverse("main:show_certifications"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "certifications.html")
+
+    def test_certifications_page_shows_data(self):
+        response = self.client.get(reverse("main:show_certifications"))
+        self.assertContains(response, "Indonesian Language Proficiency Test (UKBI)")
+        self.assertContains(response, "Agency for Language Development and Cultivation")
+
+    def test_certifications_page_empty_state(self):
+        Certification.objects.all().delete()
+        response = self.client.get(reverse("main:show_certifications"))
+        self.assertContains(response, "Belum ada sertifikasi yang ditambahkan.")

@@ -5,7 +5,8 @@ from main.views import (
     show_experience, 
     show_education, 
     show_skills, 
-    show_achievements
+    show_achievements,
+    show_certifications
 )
 
 app_name = "main"
@@ -16,4 +17,5 @@ urlpatterns = [
     path("education/", show_education, name="show_education"),
     path("skills/", show_skills, name="show_skills"),
     path("achievements/", show_achievements, name="show_achievements"),
+    path("certifications/", show_certifications, name="show_certifications"),
 ]

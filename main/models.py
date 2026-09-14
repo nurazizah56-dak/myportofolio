@@ -41,3 +41,28 @@ class Education(models.Model):
     @property
     def is_ongoing(self):
         return self.end_year is None
+
+
+class Skill(models.Model):
+    CATEGORY_CHOICES = [
+        ('soft', 'Soft Skill'),
+        ('hard', 'Hard Skill'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='soft')
+    name = models.CharField(max_length=255)
+    score = models.DecimalField(max_digits=3, decimal_places=1, default=0)  # 0.0 - 10.0
+    order = models.PositiveIntegerField(default=0, help_text="Urutan tampil, angka kecil duluan")
+
+    class Meta:
+        ordering = ['category', 'order', '-score']
+
+    def __str__(self):
+        return f"{self.name} ({self.score})"
+
+    @property
+    def percentage(self):
+        return float(self.score) * 10
+
+

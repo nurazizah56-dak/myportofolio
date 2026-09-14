@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from main.models import Experience, Education
+from main.models import Experience, Education, Skill
 
 
 def show_main(request):
@@ -30,3 +30,11 @@ def show_education(request):
         "education_list": Education.objects.all().order_by('-start_year'),
     }
     return render(request, "education.html", context)
+
+def show_skills(request):
+    context = {
+        "name": "Nur Azizah",
+        "soft_skills": Skill.objects.filter(category='soft'),
+        "hard_skills": Skill.objects.filter(category='hard'),
+    }
+    return render(request, "skills.html", context)

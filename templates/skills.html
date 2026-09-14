@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Education - {{ name }}</title>
+    <title>Skills - {{ name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -25,30 +25,36 @@
     </header>
 
     <main>
-        <section class="education" id="education">
+        <section class="skills" id="skills">
             <div class="container">
-                <p class="section-kicker">Riwayat pendidikan saya</p>
-                <h1>Education</h1>
+                <h2>Skills</h2>
+                <p class="skill-note">Self-assessment score (out of 10)</p>
 
-                <div class="education-grid">
-                    {% for edu in education_list %}
-                        <div class="education-card">
-                            {% if edu.logo %}
-                                <img src="{{ edu.logo }}" alt="{{ edu.institution_name }}" class="education-img">
-                            {% endif %}
-                            <h3>{{ edu.institution_name }}</h3>
-                            <p class="education-degree">{{ edu.degree }}</p>
-                            {% if edu.maps_url %}
-                                <a href="{{ edu.maps_url }}" class="education-address" target="_blank" rel="noopener noreferrer">{{ edu.location }}</a>
-                            {% else %}
-                                <p class="education-address">{{ edu.location }}</p>
-                            {% endif %}
-                            <p class="education-year">
-                                {{ edu.start_year }} - {% if edu.is_ongoing %}Present{% else %}{{ edu.end_year }}{% endif %}
-                            </p>
+                <h3 class="skill-category">Soft Skills</h3>
+                <div class="skills-chart">
+                    {% for skill in soft_skills %}
+                        <div class="skill-col">
+                            <div class="skill-bar-vert" style="height: {{ skill.percentage }}%;">
+                                <span class="skill-score">{{ skill.score }}</span>
+                            </div>
+                            <p class="skill-name">{{ skill.name }}</p>
                         </div>
                     {% empty %}
-                        <p class="empty-state">Belum ada riwayat pendidikan yang ditambahkan.</p>
+                        <p class="empty-state">Belum ada soft skill yang ditambahkan.</p>
+                    {% endfor %}
+                </div>
+
+                <h3 class="skill-category">Hard Skills</h3>
+                <div class="skills-chart">
+                    {% for skill in hard_skills %}
+                        <div class="skill-col">
+                            <div class="skill-bar-vert" style="height: {{ skill.percentage }}%;">
+                                <span class="skill-score">{{ skill.score }}</span>
+                            </div>
+                            <p class="skill-name">{{ skill.name }}</p>
+                        </div>
+                    {% empty %}
+                        <p class="empty-state">Belum ada hard skill yang ditambahkan.</p>
                     {% endfor %}
                 </div>
             </div>
@@ -65,11 +71,8 @@
     <script>
         const backToTopBtn = document.getElementById('backToTop');
         window.addEventListener('scroll', () => {
-            if (window.scrollY > 300) {
-                backToTopBtn.classList.add('show');
-            } else {
-                backToTopBtn.classList.remove('show');
-            }
+            if (window.scrollY > 300) backToTopBtn.classList.add('show');
+            else backToTopBtn.classList.remove('show');
         });
         backToTopBtn.addEventListener('click', () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });

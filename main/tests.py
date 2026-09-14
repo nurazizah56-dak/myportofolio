@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from main.models import Experience, Education
+from main.models import Experience, Education, Skill
 
 
 class MainTest(TestCase):
@@ -19,6 +19,12 @@ class MainTest(TestCase):
         location="Depok, West Java",
         maps_url="https://maps.app.goo.gl/NcpBNCfPGqhKCqtk8",
         start_year=2025,
+        )
+
+        self.skill = Skill.objects.create(
+        category="soft",
+        name="Teamwork & Leadership",
+        score=9.5,
         )
 
     def test_main_url_is_accessible(self):
@@ -87,3 +93,18 @@ class MainTest(TestCase):
         self.assertTrue(self.education.is_ongoing)
         response = self.client.get(reverse("main:show_education"))
         self.assertContains(response, "Present")
+
+    def test_skills_page_is_accessible(self):
+        response = self.client.get(reverse("main:show_skills"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "skills.html")
+
+    def test_skills_page_shows_data(self):
+        response = self.client.get(reverse("main:show_skills"))
+        self.assertContains(response, self.skill.name, html=True)
+        self.assertContains(response, str(self.skill.score))
+
+    def test_empty_skills_page(self):
+        Skill.objects.all().delete()
+        response = self.client.get(reverse("main:show_skills"))
+        self.assertContains(response, "Belum ada soft skill yang ditambahkan.")

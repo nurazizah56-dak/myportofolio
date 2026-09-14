@@ -5,13 +5,13 @@ Kelas : PBP A
 # Portofolio Pribadi - Tugas 1
 
 ## Deskripsi Proyek
-Tujuan dan Cakupan Utama: Website ini merupakan portofolio pribadi "About Me" yang dibangun menggunakan Django dengan arsitektur Model-View-Template (MVT). Bagian Profile, Skills, Achievements, dan Certifications masih ditampilkan sebagai konten statis pada template, sedangkan bagian Experience dan Education telah dipisahkan sebagai halaman dinamis yang datanya diambil dari basis data melalui model Django, sesuai dengan cakupan materi Tutorial 2 dan Individual Assignment 2.
+Tujuan dan Cakupan Utama: Website ini merupakan portofolio pribadi "About Me" yang dibangun menggunakan Django dengan arsitektur Model-View-Template (MVT). Seluruh bagian Utama meliputi Experience, Education, Skills, Achievements, dan Certifications telah dipisahkan ke dalam halaman dinamis yang datanya diambil dari basis data melalui model Django (Experience, Education, Skill, Achievement, dan Certification) dan dapat dikelola secara fleksibel melalui Django Admin. Sementara itu, bagian Profile dikelola melalui konteks view.
 1. Fitur Section Profile: Menyediakan informasi identitas diri, latar belakang/bio, serta akses cepat ke media sosial dan kontak pribadi. Data profil diteruskan dari view melalui context ke template.
-2. Fitur Halaman Education (`/education/`): Menampilkan riwayat pendidikan secara dinamis dari model `Education`, lengkap dengan nama institusi, jurusan, lokasi, dan tahun studi. Data dapat ditambah atau diubah melalui Django Admin tanpa mengedit kode.
-3. Fitur Section Skills: Menampilkan peta keahlian teknis maupun non-teknis secara visual bar agar tingkat kemahiran dapat dibaca dengan mudah.
-4. Fitur Halaman Experience (`/experience/`): Menampilkan seluruh pengalaman organisasi, magang, dan kepanitiaan secara dinamis dari model `Experience`, termasuk status "sedang berlangsung" atau "selesai" berdasarkan data yang tersimpan di basis data.
-5. Fitur Section Achievements: Menampilkan prestasi baik akademik maupun non akademik yang telah dicapai serta terdapat foto setiap sertifikat penghargaan yang didapatkan.
-6. Fitur Section Certifications: Menampilkan keahlian apa saja yang pernah dicapai dan disediakan juga masa berlaku serta foto sertifikat.
+2. Fitur Halaman Education (/education/): Menampilkan riwayat pendidikan secara dinamis dari model Education, lengkap dengan nama institusi, jurusan, lokasi, dan tahun studi.
+3. Fitur Halaman Experience (/experience/): Menampilkan seluruh pengalaman organisasi, magang, dan kepanitiaan secara dinamis dari model Experience, termasuk status "sedang berlangsung" atau "selesai".
+4. Fitur Halaman Skills (/skills/): Menampilkan peta keahlian teknis (hard skill) dan non-teknis (soft skill) secara dinamis dari model Skill dengan indikator skill bar visual berdasarkan tingkat kemahiran.
+5. Fitur Halaman Achievements (/achievements/): Menampilkan prestasi akademik dan non-akademik secara dinamis dari model Achievement, dilengkapi fitur carousel pratinjau sertifikat untuk penghargaan yang memiliki berkas gambar.
+6. Fitur Halaman Certifications (/certifications/): Menampilkan daftar lisensi dan sertifikasi secara dinamis dari model Certification, mencakup nama penerbit (issuer), rentang masa berlaku, deskripsi, serta tautan pratinjau sertifikat.
 
 ## Tech Stack
 ## Tech Stack

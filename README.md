@@ -14,7 +14,6 @@ Tujuan dan Cakupan Utama: Website ini merupakan portofolio pribadi "About Me" ya
 6. Fitur Halaman Certifications (/certifications/): Menampilkan daftar lisensi dan sertifikasi secara dinamis dari model Certification, mencakup nama penerbit (issuer), rentang masa berlaku, deskripsi, serta tautan pratinjau sertifikat.
 
 ## Tech Stack
-## Tech Stack
 - Django: Berfungsi sebagai backend server yang mengelola routing URL, logika *view*, koneksi ke basis data melalui Django ORM, serta rendering *template* dinamis menggunakan Django Template Language.
 - SQLite (lokal) / PostgreSQL (PWS): Basis data yang menyimpan data model `Experience` dan `Education`, memungkinkan konten ditambah atau diubah melalui Django Admin tanpa mengedit kode secara langsung.
 - HTML5: Mengatur hirarki dan struktur dokumen menggunakan elemen semantik (`<header>`, `<nav>`, `<main>`, `<section>`, `<footer>`), serta Django Template Language untuk menampilkan data dinamis (`{% for %}`, `{% if %}`, `{% url %}`).

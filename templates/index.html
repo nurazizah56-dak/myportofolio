@@ -68,9 +68,9 @@
     <script>
         const backToTopBtn = document.getElementById('backToTop');
 
-        // Tampilkan tombol saat scroll melebihi 300px
+        // Tampilkan tombol saat scroll melebihi 50px
         window.addEventListener('scroll', () => {
-            if (window.scrollY > 300) {
+            if (window.scrollY > 50) { 
                 backToTopBtn.classList.add('show');
             } else {
                 backToTopBtn.classList.remove('show');
@@ -84,15 +84,6 @@
                 behavior: 'smooth'
             });
         });
-
-        function moveSlide(direction) {
-            const track = document.getElementById('certCarousel');
-            const scrollAmount = 220; // Jarak geser (lebar kartu + gap)
-            track.scrollBy({
-                left: direction * scrollAmount,
-                behavior: 'smooth'
-            });
-        }
     </script>
 </body>
 </html>

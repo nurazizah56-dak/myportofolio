@@ -12,6 +12,32 @@
     {% block meta %} {% endblock meta %}
 </head>
 <body>
+        {% if messages %}
+        <div class="toast-container" id="toastContainer">
+            {% for message in messages %}
+            <div class="toast toast-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('toastContainer');
+            if (container) {
+                // Hilangkan toast otomatis setelah 3 detik
+                setTimeout(() => {
+                const toasts = container.querySelectorAll('.toast');
+                toasts.forEach(toast => toast.classList.add('fade-out'));
+                
+                // Hapus elemen dari DOM setelah animasi fade-out selesai (0.4 detik)
+                setTimeout(() => container.remove(), 400);
+                }, 3000);
+            }
+            });
+        </script>
+    {% endif %}
+    
     <header class="site-header">
         <div class="container">
             <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>

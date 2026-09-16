@@ -985,3 +985,9 @@ html {
         text-align: center;
     }
 }
+
+.delete-error-message {
+    color: #b42318;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+}

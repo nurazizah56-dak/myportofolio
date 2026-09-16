@@ -1,11 +1,3 @@
-<form method="post" action="{% url 'main:delete_experience' experience.id %}" class="delete-form">
-    {% csrf_token %}
-    <input type="password" name="password" placeholder="Kode rahasia" required
-           class="delete-password-input"
-           oninput="this.closest('form').querySelector('button[type=submit]').disabled = this.value.length === 0">
-    <button type="submit" class="button button-danger" disabled>Ya, Hapus</button>
-</form>
-
 <p class="experience-status">
     <button type="button"
             class="button button-danger"
@@ -21,7 +13,8 @@
      popover="auto"
      role="dialog"
      aria-modal="true"
-     aria-labelledby="delete-experience-title-{{ experience.id }}">
+     aria-labelledby="delete-experience-title-{{ experience.id }}"
+     data-experience-card="experience-card-{{ experience.id }}">
     <button type="button"
             class="project-delete-modal__backdrop"
             popovertarget="delete-experience-{{ experience.id }}"
@@ -38,15 +31,18 @@
             Apakah Anda yakin ingin menghapus
             <strong>{{ experience.title }}</strong>?
         </p>
-        <div class="project-delete-modal__actions">
-            <button type="button"
-                    class="button button-secondary"
-                    popovertarget="delete-experience-{{ experience.id }}"
-                    popovertargetaction="hide">Batal</button>
-            <form method="post" action="{% url 'main:delete_experience' experience.id %}">
-                {% csrf_token %}
+        <form class="delete-form" data-delete-url="{% url 'main:delete_experience' experience.id %}">
+            {% csrf_token %}
+            <input type="password" name="password" placeholder="Kode rahasia" required
+                   class="delete-password-input">
+            <p class="delete-error-message" style="display:none;"></p>
+            <div class="project-delete-modal__actions">
+                <button type="button"
+                        class="button button-secondary"
+                        popovertarget="delete-experience-{{ experience.id }}"
+                        popovertargetaction="hide">Batal</button>
                 <button type="submit" class="button button-danger">Ya, Hapus</button>
-            </form>
-        </div>
+            </div>
+        </form>
     </div>
 </div>

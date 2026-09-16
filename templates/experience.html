@@ -17,7 +17,7 @@
 
             <div class="experience-grid">
                 {% for experience in experience_list %}
-                    <article class="experience-card">
+                    <article class="experience-card" id="experience-card-{{ experience.id }}">
                         <span class="experience-category">
                             {{ experience.get_category_display }}
                         </span>

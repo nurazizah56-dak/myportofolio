@@ -72,3 +72,13 @@ def create_experience(request):
         "form": form,
     }
     return render(request, "experience_form.html", context)
+
+def get_experience_json(request):
+    category_query = request.GET.get("category", "").strip()
+    experiences = Experience.objects.all()
+
+    if category_query:
+        experiences = experiences.filter(category__icontains=category_query)
+
+    experiences_json = serializers.serialize("json", experiences)
+    return HttpResponse(experiences_json, content_type="application/json")

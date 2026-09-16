@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
 {% block meta %}
-    <title>{{ name }} - Portofolio</title>
+    <title>{{ name }} - Portfolio</title>
 {% endblock meta %}
 {% block content %}
 <main>
     <section class="experience-section" id="experience">
         <div class="container">
-            <p class="section-kicker">Perjalanan saya sejauh ini</p>
+            <p class="section-kicker">My journey so far</p>
             <div class="project-header">
                 <h1>Experience</h1>
                 <a href="{% url 'main:create_experience' %}" class="button project-add-button">
                     <span aria-hidden="true">+</span>
-                    Tambah Experience
+                    Add Experience
                 </a>
             </div>
 
@@ -27,16 +27,16 @@
                         </p>
 
                         {% if experience.is_ongoing %}
-                            <p class="experience-status">Sedang berlangsung</p>
+                            <p class="experience-status">Ongoing</p>
                         {% else %}
-                            <p class="experience-status">Selesai</p>
+                            <p class="experience-status">Completed</p>
                         {% endif %}
 
                         {% include "components/experience_delete_modal.html" with experience=experience %}
                     </article>
                 {% empty %}
                     <p class="empty-state">
-                        Belum ada pengalaman yang ditambahkan.
+                        No experience added yet.
                     </p>
                 {% endfor %}
             </div>

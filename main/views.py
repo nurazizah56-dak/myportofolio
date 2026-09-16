@@ -76,12 +76,12 @@ def create_experience(request):
     form = ExperienceForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Kode rahasia salah!")
+            messages.error(request, "Incorrect secret key!")
             return redirect("main:show_experience")
 
         experience = form.save(commit=False)
         experience.save()
-        messages.success(request, "Pengalaman baru berhasil ditambahkan!")
+        messages.success(request, "New experience added successfully!")
         return redirect("main:show_experience")
 
     context = {
@@ -106,9 +106,9 @@ def delete_experience(request, experience_id):
     if request.method == "POST":
         password = request.POST.get("password", "")
         if password != settings.SECRET_PORTFOLIO_KEY:
-            return JsonResponse({"success": False, "message": "Secret Key salah"}, status=403)
+            return JsonResponse({"success": False, "message": "Incorrect secret key"}, status=403)
 
         experience.delete()
-        return JsonResponse({"success": True, "message": "Experience berhasil dihapus"})
+        return JsonResponse({"success": True, "message": "Experience deleted successfully"})
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)

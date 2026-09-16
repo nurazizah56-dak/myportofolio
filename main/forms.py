@@ -6,8 +6,8 @@ from main.models import Experience
 
 class ExperienceForm(ModelForm):
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={"placeholder": "Kode rahasia"}),
-        label="Kode Rahasia",
+        widget=forms.PasswordInput(attrs={"placeholder": "Secret key"}),
+        label="Secret Key",
         required=True,
     )
 
@@ -21,15 +21,15 @@ class ExperienceForm(ModelForm):
             "ended_at",
         ]
         labels = {
-            "title": "Judul Pengalaman",
-            "description": "Deskripsi",
-            "category": "Kategori",
-            "thumbnail": "URL Thumbnail",
-            "ended_at": "Tanggal Selesai (kosongkan jika masih berlangsung)",
+            "title": "Experience Title",
+            "description": "Description",
+            "category": "Category",
+            "thumbnail": "Thumbnail URL",
+            "ended_at": "End Date (leave blank if ongoing)",
         }
         widgets = {
             "title": TextInput(attrs={"placeholder": "Software Engineer Intern", "maxlength": 255}),
-            "description": Textarea(attrs={"placeholder": "Ceritakan pengalamanmu", "rows": 3}),
+            "description": Textarea(attrs={"placeholder": "Describe your experience", "rows": 3}),
             "category": Select(),
             "thumbnail": URLInput(attrs={"placeholder": "https://drive.google.com/thumbnail?id=...&sz=w1000"}),
             "ended_at": DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),

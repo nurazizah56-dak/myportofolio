@@ -710,6 +710,8 @@ html {
     background-color: var(--card-bg);
     border: 1px solid var(--line);
     border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
 }
 
 .experience-category {
@@ -724,7 +726,11 @@ html {
     font-size: 1.25rem;
 }
 
-.experience-description,
+.experience-description {
+    color: var(--text-muted);
+    flex-grow: 1;
+}
+
 .empty-state {
     color: var(--text-muted);
 }

@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.core import serializers
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.conf import settings
 
 from main.forms import ExperienceForm
 from main.models import Experience, Education, Skill, Achievement, Certification
@@ -83,20 +84,33 @@ def create_experience(request):
     }
     return render(request, "experience_form.html", context)
 
-def get_experience_json(request):
-    category_query = request.GET.get("category", "").strip()
-    experiences = Experience.objects.all()
+def create_experience(request):
+    form = ExperienceForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
+            messages.error(request, "Kode rahasia salah!")
+            return redirect("main:show_experience")
 
-    if category_query:
-        experiences = experiences.filter(category__icontains=category_query)
+        experience = form.save(commit=False)
+        experience.save()
+        messages.success(request, "Pengalaman baru berhasil ditambahkan!")
+        return redirect("main:show_experience")
 
-    experiences_json = serializers.serialize("json", experiences)
-    return HttpResponse(experiences_json, content_type="application/json")
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+    }
+    return render(request, "experience_form.html", context)
 
 def delete_experience(request, experience_id):
     experience = get_object_or_404(Experience, pk=experience_id)
 
     if request.method == "POST":
+        password = request.POST.get("password", "")
+        if password != settings.SECRET_PORTFOLIO_KEY:
+            messages.error(request, "Kode rahasia salah!")
+            return redirect("main:show_experience")
+
         experience.delete()
         messages.success(request, "Experience berhasil dihapus!")
         return redirect("main:show_experience")

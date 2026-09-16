@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Achievements - {{ name }}</title>
+    <title>{{ name }} - Achievements</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -41,7 +41,7 @@
                             </div>
                         </div>
                     {% empty %}
-                        <p class="empty-state">Belum ada pencapaian akademik.</p>
+                        <p class="empty-state">No academic achievements added yet.</p>
                     {% endfor %}
                 </div>
 
@@ -57,25 +57,23 @@
                             </div>
                         </div>
                     {% empty %}
-                        <p class="empty-state">Belum ada pencapaian non-akademik.</p>
+                        <p class="empty-state">No non-academic achievements added yet.</p>
                     {% endfor %}
                 </div>
 
                 {% if carousel_items %}
+                <h3 class="carousel-title">Certificates & Documentation</h3>
                 <div class="carousel-wrapper">
-                    <button class="carousel-btn prev" onclick="moveSlide(-1)">❮</button>
-                    <h3 class="carousel-title">Certificates & Documentation</h3>
-                    <div class="carousel-wrapper">
-                        <div class="carousel-track" id="certCarousel">
-                            {% for item in carousel_items %}
-                                <div class="carousel-card">
-                                    <img src="{{ item.image }}" alt="{{ item.title }}">
-                                    <p>{{ item.title }}</p>
-                                </div>
-                            {% endfor %}
-                        </div>
-                        <button class="carousel-btn next" onclick="moveSlide(1)">❯</button>
+                    <button type="button" class="carousel-btn prev" id="carouselPrev">❮</button>
+                    <div class="carousel-track" id="certCarousel">
+                        {% for item in carousel_items %}
+                            <div class="carousel-card">
+                                <img src="{{ item.image }}" alt="{{ item.title }}">
+                                <p>{{ item.title }}</p>
+                            </div>
+                        {% endfor %}
                     </div>
+                    <button type="button" class="carousel-btn next" id="carouselNext">❯</button>
                 </div>
                 {% endif %}
             </div>
@@ -84,16 +82,16 @@
 
     <footer class="site-footer">
         <div class="container">
-            <p>&copy; 2026 {{ name }}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+            <p>&copy; 2026 {{ name }}. Faculty of Computer Science, Universitas Indonesia.</p>
         </div>
     </footer>
 
-    <!-- Tombol Back to Top -->
+    <!-- Back to Top Button -->
     <button id="backToTop" class="back-to-top" aria-label="Back to top">↑</button>
-    <script>
-        const backToTopBtn = document.getElementById('backToTop');
 
-        // Tampilkan tombol saat scroll melebihi 300px
+    <script>
+        // Script untuk Back to Top
+        const backToTopBtn = document.getElementById('backToTop');
         window.addEventListener('scroll', () => {
             if (window.scrollY > 300) { 
                 backToTopBtn.classList.add('show');
@@ -101,13 +99,24 @@
                 backToTopBtn.classList.remove('show');
             }
         });
-
-        // Scroll ke atas saat tombol diklik
         backToTopBtn.addEventListener('click', () => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // Script untuk Carousel Scroll
+        document.addEventListener("DOMContentLoaded", function () {
+            const track = document.getElementById("certCarousel");
+            const prevBtn = document.getElementById("carouselPrev");
+            const nextBtn = document.getElementById("carouselNext");
+
+            if (track && prevBtn && nextBtn) {
+                prevBtn.addEventListener("click", () => {
+                    track.scrollBy({ left: -220, behavior: "smooth" });
+                });
+                nextBtn.addEventListener("click", () => {
+                    track.scrollBy({ left: 220, behavior: "smooth" });
+                });
+            }
         });
     </script>
 </body>

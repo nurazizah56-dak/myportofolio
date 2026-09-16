@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from decouple import config
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -25,6 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-ng8t-_b$6%c3a)#9ul2p365zy*4^e5^js3+$nly_a$9g)^k^n^'
+SECRET_PORTFOLIO_KEY = config("SECRET_PORTFOLIO_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

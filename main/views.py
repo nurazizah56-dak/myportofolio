@@ -4,6 +4,7 @@ from django.core import serializers
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.conf import settings
+from django.http import JsonResponse
 
 from main.forms import ExperienceForm
 from main.models import Experience, Education, Skill, Achievement, Certification
@@ -105,11 +106,9 @@ def delete_experience(request, experience_id):
     if request.method == "POST":
         password = request.POST.get("password", "")
         if password != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Kode rahasia salah!")
-            return redirect("main:show_experience")
+            return JsonResponse({"success": False, "message": "Secret Key salah"}, status=403)
 
         experience.delete()
-        messages.success(request, "Experience berhasil dihapus!")
-        return redirect("main:show_experience")
+        return JsonResponse({"success": True, "message": "Experience berhasil dihapus"})
 
-    return redirect("main:show_experience")
+    return JsonResponse({"success": False, "message": "Invalid request"}, status=405)

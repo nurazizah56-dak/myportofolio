@@ -771,6 +771,29 @@ html {
     transition: border-color 0.2s ease, outline-color 0.2s ease;
 }
 
+.delete-password-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font: inherit;
+    background: #fff;
+    color: var(--ink);
+    transition: border-color 0.2s ease, outline-color 0.2s ease;
+}
+
+.delete-password-input:focus {
+    outline: 2px solid var(--accent);
+    border-color: var(--accent);
+}
+
+.delete-form {
+    display: flex;
+    flex-direction: column;
+}
+
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
@@ -801,6 +824,18 @@ html {
 
 .button-secondary {
     background: var(--ink, #333);
+}
+
+.experience-card 
+.button-danger {
+    font-size: 1rem;
+    padding: 0.75rem 1.2rem;
+    width: 100%;
+}
+
+.button-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .project-header {
@@ -895,9 +930,10 @@ html {
     position: relative;
     z-index: 1;
     width: min(100%, 480px);
+    margin-top: 1.5rem;
     padding: 1.5rem;
     background: var(--card-bg);
-    border: 1px solid var(--line);
+    border: 1.5px solid var(--line);
     border-radius: var(--radius);
     box-shadow: 0 1rem 3rem rgba(30, 58, 95, 0.22);
 }

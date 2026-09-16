@@ -1,5 +1,10 @@
 from django.shortcuts import render
+from django.contrib import messages
+from django.core import serializers
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 
+from main.forms import ExperienceForm
 from main.models import Experience, Education, Skill, Achievement, Certification
 
 
@@ -54,3 +59,16 @@ def show_certifications(request):
         "certification_list": Certification.objects.all(),
     }
     return render(request, "certifications.html", context)
+
+def create_experience(request):
+    form = ExperienceForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Pengalaman baru berhasil ditambahkan!")
+        return redirect("main:show_experience")
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+    }
+    return render(request, "experience_form.html", context)

@@ -23,9 +23,19 @@ def show_main(request):
 
 
 def show_experience(request):
+    json_response = get_experience_json(request)
+    experiences = serializers.deserialize(
+        "json",
+        json_response.content.decode("utf-8"),
+    )
+    experiences = [experience.object for experience in experiences]
+
+    category_query = request.GET.get("category", "").strip()
+
     context = {
         "name": "Nur Azizah",
-        "experience_list": Experience.objects.all(),
+        "experience_list": experiences,
+        "category_query": category_query,
     }
     return render(request, "experience.html", context)
 

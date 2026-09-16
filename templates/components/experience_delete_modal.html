@@ -1,8 +1,9 @@
-<form method="post" action="{% url 'main:delete_experience' experience.id %}">
+<form method="post" action="{% url 'main:delete_experience' experience.id %}" class="delete-form">
     {% csrf_token %}
     <input type="password" name="password" placeholder="Kode rahasia" required
-           class="delete-password-input">
-    <button type="submit" class="button button-danger">Ya, Hapus</button>
+           class="delete-password-input"
+           oninput="this.closest('form').querySelector('button[type=submit]').disabled = this.value.length === 0">
+    <button type="submit" class="button button-danger" disabled>Ya, Hapus</button>
 </form>
 
 <p class="experience-status">

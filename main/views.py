@@ -74,19 +74,6 @@ def show_certifications(request):
 def create_experience(request):
     form = ExperienceForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Pengalaman baru berhasil ditambahkan!")
-        return redirect("main:show_experience")
-
-    context = {
-        "name": "Nur Azizah",
-        "form": form,
-    }
-    return render(request, "experience_form.html", context)
-
-def create_experience(request):
-    form = ExperienceForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
         if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
             messages.error(request, "Kode rahasia salah!")
             return redirect("main:show_experience")
@@ -101,6 +88,16 @@ def create_experience(request):
         "form": form,
     }
     return render(request, "experience_form.html", context)
+
+def get_experience_json(request):
+    category_query = request.GET.get("category", "").strip()
+    experiences = Experience.objects.all()
+
+    if category_query:
+        experiences = experiences.filter(category__icontains=category_query)
+
+    experiences_json = serializers.serialize("json", experiences)
+    return HttpResponse(experiences_json, content_type="application/json")
 
 def delete_experience(request, experience_id):
     experience = get_object_or_404(Experience, pk=experience_id)

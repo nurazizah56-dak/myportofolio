@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.core import serializers
 from django.http import HttpResponse
@@ -112,3 +112,18 @@ def delete_experience(request, experience_id):
         return JsonResponse({"success": True, "message": "Experience deleted successfully"})
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
+
+def add_experience(request):
+    if request.method == 'POST':
+        password = request.POST.get('password')
+        
+        # Validasi password/secret key
+        if password != 'PASSWORD_KAMU':
+            messages.error(request, 'Wrong password 🤷‍♂️!')
+            return redirect('main:show_experience')
+
+        # Jika sukses
+        messages.success(request, 'Experience successfully added! 🎉')
+        return redirect('main:show_experience')
+
+    return render(request, 'experience.html')

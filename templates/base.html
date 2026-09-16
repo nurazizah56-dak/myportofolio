@@ -48,5 +48,46 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     </script>
+
+    <script>
+        document.addEventListener("submit", async function (e) {
+            const form = e.target;
+            if (!form.classList.contains("delete-form")) return;
+
+            e.preventDefault();
+
+            const url = form.dataset.deleteUrl;
+            const errorEl = form.querySelector(".delete-error-message");
+            const passwordInput = form.querySelector(".delete-password-input");
+            const csrfToken = form.querySelector("[name=csrfmiddlewaretoken]").value;
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "X-CSRFToken": csrfToken },
+                    body: formData,
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const modal = form.closest(".project-delete-modal");
+                    const cardId = modal.dataset.experienceCard;
+                    const card = document.getElementById(cardId);
+                    if (card) card.remove();
+                    modal.hidePopover();
+                } else {
+                    errorEl.textContent = data.message;
+                    errorEl.style.display = "block";
+                    passwordInput.value = "";
+                    passwordInput.focus();
+                }
+            } catch (err) {
+                errorEl.textContent = "Terjadi kesalahan, coba lagi.";
+                errorEl.style.display = "block";
+            }
+        });
+    </script>
 </body>
 </html>

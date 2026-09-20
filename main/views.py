@@ -82,21 +82,6 @@ def delete_experience(request, experience_id):
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
 
-def add_experience(request):
-    if request.method == 'POST':
-        password = request.POST.get('password')
-        
-        # Validasi password/secret key
-        if password != 'PASSWORD_KAMU':
-            messages.error(request, 'Wrong password 🤷‍♂️!')
-            return redirect('main:show_experience')
-
-        # Jika sukses
-        messages.success(request, 'Experience successfully added! 🎉')
-        return redirect('main:show_experience')
-
-    return render(request, 'experience.html')
-
 def show_education(request):
     json_response = get_education_json(request)
     education_list = serializers.deserialize(

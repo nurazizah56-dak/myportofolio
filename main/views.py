@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.conf import settings
 from django.http import JsonResponse
 
-from main.forms import ExperienceForm, EducationForm, SkillForm
+from main.forms import ExperienceForm, EducationForm, SkillForm, AchievementForm
 from main.models import Experience, Education, Skill, Achievement, Certification
 
 
@@ -228,13 +228,86 @@ def delete_skill(request, skill_id):
 
 
 def show_achievements(request):
+    json_response = get_achievement_json(request)
+    achievements = serializers.deserialize(
+        "json",
+        json_response.content.decode("utf-8"),
+    )
+    achievements = [a.object for a in achievements]
+
+    academic_achievements = sorted(
+        [a for a in achievements if a.category == "academic"],
+        key=lambda a: a.year, reverse=True
+    )
+    non_academic_achievements = sorted(
+        [a for a in achievements if a.category == "non_academic"],
+        key=lambda a: a.year, reverse=True
+    )
+    carousel_items = [a for a in achievements if a.image]
+
     context = {
         "name": "Nur Azizah",
-        "academic_achievements": Achievement.objects.filter(category='academic').order_by('-year'),
-        "non_academic_achievements": Achievement.objects.filter(category='non_academic').order_by('-year'),
-        "carousel_items": Achievement.objects.exclude(image__isnull=True).exclude(image__exact=''),
+        "academic_achievements": academic_achievements,
+        "non_academic_achievements": non_academic_achievements,
+        "carousel_items": carousel_items,
     }
     return render(request, "achievements.html", context)
+
+def get_achievement_json(request):
+    achievements = Achievement.objects.all()
+    achievements_json = serializers.serialize("json", achievements)
+    return HttpResponse(achievements_json, content_type="application/json")
+
+def create_achievement(request):
+    form = AchievementForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
+            messages.error(request, "Incorrect secret key!")
+            return redirect("main:show_achievements")
+
+        achievement = form.save(commit=False)
+        achievement.save()
+        messages.success(request, "Achievement added successfully!")
+        return redirect("main:show_achievements")
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+    }
+    return render(request, "achievement_form.html", context)
+
+def update_achievement(request, achievement_id):
+    achievement = get_object_or_404(Achievement, pk=achievement_id)
+    form = AchievementForm(request.POST or None, instance=achievement)
+    if request.method == "POST" and form.is_valid():
+        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
+            messages.error(request, "Incorrect secret key!")
+            return redirect("main:show_achievements")
+
+        form.save()
+        messages.success(request, "Achievement updated successfully!")
+        return redirect("main:show_achievements")
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+        "achievement": achievement,
+    }
+    return render(request, "achievement_form.html", context)
+
+def delete_achievement(request, achievement_id):
+    achievement = get_object_or_404(Achievement, pk=achievement_id)
+
+    if request.method == "POST":
+        password = request.POST.get("password", "")
+        if password != settings.SECRET_PORTFOLIO_KEY:
+            return JsonResponse({"success": False, "message": "Incorrect secret key"}, status=403)
+
+        achievement.delete()
+        return JsonResponse({"success": True, "message": "Achievement deleted successfully"})
+
+    return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
+
 
 def show_certifications(request):
     context = {

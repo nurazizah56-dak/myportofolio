@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import ModelForm, TextInput, Textarea, URLInput, Select, DateTimeInput, NumberInput
 
-from main.models import Experience, Education
+from main.models import Experience, Education, Skill
 
 
 class ExperienceForm(ModelForm):
@@ -70,4 +70,32 @@ class EducationForm(ModelForm):
             "logo": TextInput(attrs={"placeholder": "https://.../logo.png"}),
             "start_year": NumberInput(attrs={"placeholder": "2024"}),
             "end_year": NumberInput(attrs={"placeholder": "2028"}),
+        }
+
+class SkillForm(ModelForm):
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"placeholder": "Secret key"}),
+        label="Secret Key",
+        required=True,
+    )
+
+    class Meta:
+        model = Skill
+        fields = [
+            "category",
+            "name",
+            "score",
+            "order",
+        ]
+        labels = {
+            "category": "Category",
+            "name": "Skill Name",
+            "score": "Score (0-10)",
+            "order": "Display Order",
+        }
+        widgets = {
+            "category": Select(),
+            "name": TextInput(attrs={"placeholder": "Python"}),
+            "score": NumberInput(attrs={"placeholder": "8.5", "step": "0.1", "min": "0", "max": "10"}),
+            "order": NumberInput(attrs={"placeholder": "1"}),
         }

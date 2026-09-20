@@ -36,6 +36,12 @@ class ExperienceForm(ModelForm):
         }
 
 class EducationForm(ModelForm):
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"placeholder": "Kode rahasia"}),
+        label="Kode Rahasia",
+        required=True,
+    )
+
     class Meta:
         model = Education
         fields = [

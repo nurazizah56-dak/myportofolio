@@ -41,44 +41,6 @@ def show_experience(request):
     }
     return render(request, "experience.html", context)
 
-def show_education(request):
-    json_response = get_education_json(request)
-    education_list = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    education_list = [e.object for e in education_list]
-
-    context = {
-        "name": "Nur Azizah",
-        "education_list": education_list,
-    }
-    return render(request, "education.html", context)
-
-def show_skills(request):
-    context = {
-        "name": "Nur Azizah",
-        "soft_skills": Skill.objects.filter(category='soft'),
-        "hard_skills": Skill.objects.filter(category='hard'),
-    }
-    return render(request, "skills.html", context)
-
-def show_achievements(request):
-    context = {
-        "name": "Nur Azizah",
-        "academic_achievements": Achievement.objects.filter(category='academic').order_by('-year'),
-        "non_academic_achievements": Achievement.objects.filter(category='non_academic').order_by('-year'),
-        "carousel_items": Achievement.objects.exclude(image__isnull=True).exclude(image__exact=''),
-    }
-    return render(request, "achievements.html", context)
-
-def show_certifications(request):
-    context = {
-        "name": "Nur Azizah",
-        "certification_list": Certification.objects.all(),
-    }
-    return render(request, "certifications.html", context)
-
 def create_experience(request):
     form = ExperienceForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -135,6 +97,20 @@ def add_experience(request):
 
     return render(request, 'experience.html')
 
+def show_education(request):
+    json_response = get_education_json(request)
+    education_list = serializers.deserialize(
+        "json",
+        json_response.content.decode("utf-8"),
+    )
+    education_list = [e.object for e in education_list]
+
+    context = {
+        "name": "Nur Azizah",
+        "education_list": education_list,
+    }
+    return render(request, "education.html", context)
+
 def create_education(request):
     form = EducationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -189,3 +165,27 @@ def delete_education(request, education_id):
         return JsonResponse({"success": True, "message": "Education deleted successfully"})
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
+
+def show_skills(request):
+    context = {
+        "name": "Nur Azizah",
+        "soft_skills": Skill.objects.filter(category='soft'),
+        "hard_skills": Skill.objects.filter(category='hard'),
+    }
+    return render(request, "skills.html", context)
+
+def show_achievements(request):
+    context = {
+        "name": "Nur Azizah",
+        "academic_achievements": Achievement.objects.filter(category='academic').order_by('-year'),
+        "non_academic_achievements": Achievement.objects.filter(category='non_academic').order_by('-year'),
+        "carousel_items": Achievement.objects.exclude(image__isnull=True).exclude(image__exact=''),
+    }
+    return render(request, "achievements.html", context)
+
+def show_certifications(request):
+    context = {
+        "name": "Nur Azizah",
+        "certification_list": Certification.objects.all(),
+    }
+    return render(request, "certifications.html", context)

@@ -21,9 +21,9 @@
                     </div>
                 {% endfor %}
                 <button type="submit" class="button">
-                    {% if education %}Simpan Perubahan{% else %}Tambah Education{% endif %}
+                    {% if education %}Save Changes{% else %}Add Education{% endif %}
                 </button>
-                <a href="{% url 'main:show_education' %}" class="button button-secondary">Batal</a>
+                <a href="{% url 'main:show_education' %}" class="button button-secondary">Cancel</a>
             </form>
         </div>
     </section>

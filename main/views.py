@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.conf import settings
 from django.http import JsonResponse
 
-from main.forms import ExperienceForm, EducationForm
+from main.forms import ExperienceForm, EducationForm, SkillForm
 from main.models import Experience, Education, Skill, Achievement, Certification
 
 
@@ -82,6 +82,7 @@ def delete_experience(request, experience_id):
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
 
+
 def show_education(request):
     json_response = get_education_json(request)
     education_list = serializers.deserialize(
@@ -151,13 +152,80 @@ def delete_education(request, education_id):
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
 
+
 def show_skills(request):
+    json_response = get_skill_json(request)
+    skills = serializers.deserialize(
+        "json",
+        json_response.content.decode("utf-8"),
+    )
+    skills = [s.object for s in skills]
+
+    soft_skills = [s for s in skills if s.category == "soft"]
+    hard_skills = [s for s in skills if s.category == "hard"]
+
     context = {
         "name": "Nur Azizah",
-        "soft_skills": Skill.objects.filter(category='soft'),
-        "hard_skills": Skill.objects.filter(category='hard'),
+        "soft_skills": soft_skills,
+        "hard_skills": hard_skills,
     }
     return render(request, "skills.html", context)
+
+def get_skill_json(request):
+    skills = Skill.objects.all()
+    skills_json = serializers.serialize("json", skills)
+    return HttpResponse(skills_json, content_type="application/json")
+
+def create_skill(request):
+    form = SkillForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
+            messages.error(request, "Incorrect secret key!")
+            return redirect("main:show_skills")
+
+        skill = form.save(commit=False)
+        skill.save()
+        messages.success(request, "Skill added successfully!")
+        return redirect("main:show_skills")
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+    }
+    return render(request, "skill_form.html", context)
+
+def update_skill(request, skill_id):
+    skill = get_object_or_404(Skill, pk=skill_id)
+    form = SkillForm(request.POST or None, instance=skill)
+    if request.method == "POST" and form.is_valid():
+        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
+            messages.error(request, "Incorrect secret key!")
+            return redirect("main:show_skills")
+
+        form.save()
+        messages.success(request, "Skill updated successfully!")
+        return redirect("main:show_skills")
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+        "skill": skill,
+    }
+    return render(request, "skill_form.html", context)
+
+def delete_skill(request, skill_id):
+    skill = get_object_or_404(Skill, pk=skill_id)
+
+    if request.method == "POST":
+        password = request.POST.get("password", "")
+        if password != settings.SECRET_PORTFOLIO_KEY:
+            return JsonResponse({"success": False, "message": "Incorrect secret key"}, status=403)
+
+        skill.delete()
+        return JsonResponse({"success": True, "message": "Skill deleted successfully"})
+
+    return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
+
 
 def show_achievements(request):
     context = {

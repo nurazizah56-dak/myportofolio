@@ -1072,3 +1072,35 @@ html {
         flex-direction: column;
     }
 }
+
+.skill-actions {
+    display: flex;
+    gap: 0.35rem;
+    margin-top: 0.4rem;
+    justify-content: center;
+}
+
+.skill-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.skill-delete-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50%;
+    padding: 0 !important;
+    font-size: 0.9rem;
+    line-height: 1;
+}

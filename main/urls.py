@@ -12,6 +12,10 @@ from main.views import (
     delete_education,
     get_education_json,
     show_skills, 
+    create_skill, 
+    update_skill, 
+    delete_skill, 
+    get_skill_json,
     show_achievements,
     show_certifications,
 )
@@ -30,6 +34,10 @@ urlpatterns = [
     path("education/<uuid:education_id>/delete/", delete_education, name="delete_education"),
     path("api/education/", get_education_json, name="get_education_json"),
     path("skills/", show_skills, name="show_skills"),
+    path("skills/add/", create_skill, name="create_skill"),
+    path("skills/<uuid:skill_id>/edit/", update_skill, name="update_skill"),
+    path("skills/<uuid:skill_id>/delete/", delete_skill, name="delete_skill"),
+    path("api/skills/", get_skill_json, name="get_skill_json"),
     path("achievements/", show_achievements, name="show_achievements"),
     path("certifications/", show_certifications, name="show_certifications"),
 ]

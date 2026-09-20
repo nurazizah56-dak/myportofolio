@@ -37,8 +37,8 @@ class ExperienceForm(ModelForm):
 
 class EducationForm(ModelForm):
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={"placeholder": "Kode rahasia"}),
-        label="Kode Rahasia",
+        widget=forms.PasswordInput(attrs={"placeholder": "Secret key"}),
+        label="Secret Key",
         required=True,
     )
 
@@ -54,18 +54,18 @@ class EducationForm(ModelForm):
             "end_year",
         ]
         labels = {
-            "institution_name": "Nama Institusi",
-            "degree": "Gelar/Jenjang",
-            "location": "Lokasi",
-            "maps_url": "URL Google Maps",
-            "logo": "URL Logo",
-            "start_year": "Tahun Mulai",
-            "end_year": "Tahun Selesai (kosongkan jika masih berlangsung)",
+            "institution_name": "Institution Name",
+            "degree": "Degree",
+            "location": "Location",
+            "maps_url": "Google Maps URL",
+            "logo": "Logo URL",
+            "start_year": "Start Year",
+            "end_year": "End Year (leave blank if ongoing)",
         }
         widgets = {
             "institution_name": TextInput(attrs={"placeholder": "Universitas Indonesia"}),
             "degree": TextInput(attrs={"placeholder": "Bachelor of Information Systems"}),
-            "location": TextInput(attrs={"placeholder": "Depok, Jawa Barat"}),
+            "location": TextInput(attrs={"placeholder": "Depok, West Java"}),
             "maps_url": URLInput(attrs={"placeholder": "https://maps.google.com/..."}),
             "logo": TextInput(attrs={"placeholder": "https://.../logo.png"}),
             "start_year": NumberInput(attrs={"placeholder": "2024"}),

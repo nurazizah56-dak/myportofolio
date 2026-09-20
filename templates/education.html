@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
 {% block meta %}
-    <title>{{ name }} - Portofolio</title>
+    <title>{{ name }} - Portfolio</title>
 {% endblock meta %}
 {% block content %}
 <main>
     <section class="experience-section" id="education">
         <div class="container">
-            <p class="section-kicker">Riwayat pendidikan saya</p>
+            <p class="section-kicker">My educational background</p>
             <div class="project-header">
                 <h1>Education</h1>
                 <a href="{% url 'main:create_education' %}" class="button project-add-button">
                     <span aria-hidden="true">+</span>
-                    Tambah Education
+                    Add Education
                 </a>
             </div>
 
@@ -37,7 +37,7 @@
                         </div>
                     </div>
                 {% empty %}
-                    <p class="empty-state">Belum ada riwayat pendidikan yang ditambahkan.</p>
+                    <p class="empty-state">No education history added yet.</p>
                 {% endfor %}
             </div>
         </div>

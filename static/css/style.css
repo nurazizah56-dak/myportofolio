@@ -1049,3 +1049,26 @@ html {
     opacity: 0;
     transform: scale(0.8);
 }
+
+.education-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    width: 100%;
+}
+
+.education-actions .button,
+.education-actions .experience-status {
+    flex: 1;
+}
+
+.education-actions .button {
+    width: 100%;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .education-actions {
+        flex-direction: column;
+    }
+}

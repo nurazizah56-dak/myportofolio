@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import ModelForm, TextInput, Textarea, URLInput, Select, DateTimeInput, NumberInput
 
-from main.models import Experience, Education, Skill
+from main.models import Experience, Education, Skill, Achievement
 
 
 class ExperienceForm(ModelForm):
@@ -98,4 +98,38 @@ class SkillForm(ModelForm):
             "name": TextInput(attrs={"placeholder": "Python"}),
             "score": NumberInput(attrs={"placeholder": "8.5", "step": "0.1", "min": "0", "max": "10"}),
             "order": NumberInput(attrs={"placeholder": "1"}),
+        }
+
+class AchievementForm(ModelForm):
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"placeholder": "Secret key"}),
+        label="Secret Key",
+        required=True,
+    )
+
+    class Meta:
+        model = Achievement
+        fields = [
+            "title",
+            "description",
+            "year",
+            "category",
+            "icon",
+            "image",
+        ]
+        labels = {
+            "title": "Title",
+            "description": "Description",
+            "year": "Year",
+            "category": "Category",
+            "icon": "Icon (emoji)",
+            "image": "Image filename (in static/img/)",
+        }
+        widgets = {
+            "title": TextInput(attrs={"placeholder": "1st Place National Debate Competition"}),
+            "description": Textarea(attrs={"placeholder": "Describe the achievement", "rows": 3}),
+            "year": NumberInput(attrs={"placeholder": "2026"}),
+            "category": Select(),
+            "icon": TextInput(attrs={"placeholder": "🏆"}),
+            "image": TextInput(attrs={"placeholder": "achievement-example.jpg"}),
         }

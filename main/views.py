@@ -310,8 +310,70 @@ def delete_achievement(request, achievement_id):
 
 
 def show_certifications(request):
+    json_response = get_certification_json(request)
+    certifications = serializers.deserialize(
+        "json",
+        json_response.content.decode("utf-8"),
+    )
+    certification_list = sorted([c.object for c in certifications], key=lambda c: c.title)
+
     context = {
         "name": "Nur Azizah",
-        "certification_list": Certification.objects.all(),
+        "certification_list": certification_list,
     }
     return render(request, "certifications.html", context)
+
+def get_certification_json(request):
+    certifications = Certification.objects.all()
+    certifications_json = serializers.serialize("json", certifications)
+    return HttpResponse(certifications_json, content_type="application/json")
+
+def create_certification(request):
+    form = CertificationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
+            messages.error(request, "Incorrect secret key!")
+            return redirect("main:show_certifications")
+
+        certification = form.save(commit=False)
+        certification.save()
+        messages.success(request, "Certification added successfully!")
+        return redirect("main:show_certifications")
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+    }
+    return render(request, "certification_form.html", context)
+
+def update_certification(request, certification_id):
+    certification = get_object_or_404(Certification, pk=certification_id)
+    form = CertificationForm(request.POST or None, instance=certification)
+    if request.method == "POST" and form.is_valid():
+        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
+            messages.error(request, "Incorrect secret key!")
+            return redirect("main:show_certifications")
+
+        form.save()
+        messages.success(request, "Certification updated successfully!")
+        return redirect("main:show_certifications")
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+        "certification": certification,
+    }
+    return render(request, "certification_form.html", context)
+
+def delete_certification(request, certification_id):
+    certification = get_object_or_404(Certification, pk=certification_id)
+
+    if request.method == "POST":
+        password = request.POST.get("password", "")
+        if password != settings.SECRET_PORTFOLIO_KEY:
+            return JsonResponse({"success": False, "message": "Incorrect secret key"}, status=403)
+
+        certification.delete()
+        return JsonResponse({"success": True, "message": "Certification deleted successfully"})
+
+    return JsonResponse({"success": False, "message": "Invalid request"}, status=405)

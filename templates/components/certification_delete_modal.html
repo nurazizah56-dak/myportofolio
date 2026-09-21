@@ -1,0 +1,46 @@
+<button type="button"
+        class="button button-danger"
+        popovertarget="delete-certification-{{ cert.id }}"
+        aria-label="Delete {{ cert.title }}"
+        title="Delete certification">
+    Delete
+</button>
+
+<div id="delete-certification-{{ cert.id }}"
+     class="project-delete-modal"
+     popover="auto"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="delete-certification-title-{{ cert.id }}"
+     data-experience-card="cert-item-{{ cert.id }}">
+    <button type="button"
+            class="project-delete-modal__backdrop"
+            popovertarget="delete-certification-{{ cert.id }}"
+            popovertargetaction="hide"
+            aria-label="Close confirmation"></button>
+    <div class="project-delete-modal__content">
+        <button type="button"
+                class="project-delete-modal__close"
+                popovertarget="delete-certification-{{ cert.id }}"
+                popovertargetaction="hide"
+                aria-label="Close confirmation">×</button>
+        <h2 id="delete-certification-title-{{ cert.id }}">Delete Certification?</h2>
+        <p>
+            Are you sure you want to delete
+            <strong>{{ cert.title }}</strong>?
+        </p>
+        <form class="delete-form" data-delete-url="{% url 'main:delete_certification' cert.id %}">
+            {% csrf_token %}
+            <input type="password" name="password" placeholder="Secret key" required
+                   class="delete-password-input">
+            <p class="delete-error-message" style="display:none;"></p>
+            <div class="project-delete-modal__actions">
+                <button type="button"
+                        class="button button-secondary"
+                        popovertarget="delete-certification-{{ cert.id }}"
+                        popovertargetaction="hide">Cancel</button>
+                <button type="submit" class="button button-danger">Yes, Delete</button>
+            </div>
+        </form>
+    </div>
+</div>

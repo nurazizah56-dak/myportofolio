@@ -2,22 +2,24 @@ Nama : Nur Azizah
 NPM : 2506547935
 Kelas : PBP A
 
-# Portofolio Pribadi - Tugas 1
+# Portofolio Pribadi 
 
 ## Deskripsi Proyek
-Tujuan dan Cakupan Utama: Website ini merupakan portofolio pribadi "About Me" yang dibangun menggunakan Django dengan arsitektur Model-View-Template (MVT). Seluruh bagian Utama meliputi Experience, Education, Skills, Achievements, dan Certifications telah dipisahkan ke dalam halaman dinamis yang datanya diambil dari basis data melalui model Django (Experience, Education, Skill, Achievement, dan Certification) dan dapat dikelola secara fleksibel melalui Django Admin. Sementara itu, bagian Profile dikelola melalui konteks view.
+Tujuan dan Cakupan Utama: Website ini merupakan portofolio pribadi "About Me" yang dibangun menggunakan Django dengan arsitektur Model-View-Template (MVT). Seluruh bagian utama meliputi Experience, Education, Skills, Achievements, dan Certifications telah dipisahkan ke dalam halaman dinamis yang datanya diambil dari basis data melalui model Django (Experience, Education, Skill, Achievement, dan Certification). Data pada bagian Education, Skill, Achievement, dan Certification kini dapat dikelola langsung melalui halaman web menggunakan form Create, Update, dan Delete yang dilindungi oleh secret key, selain juga dapat dikelola melalui Django Admin. Setiap bagian juga menyediakan endpoint API dalam format JSON. Sementara itu, bagian Profile dikelola melalui konteks view.
 1. Fitur Section Profile: Menyediakan informasi identitas diri, latar belakang/bio, serta akses cepat ke media sosial dan kontak pribadi. Data profil diteruskan dari view melalui context ke template.
-2. Fitur Halaman Education (/education/): Menampilkan riwayat pendidikan secara dinamis dari model Education, lengkap dengan nama institusi, jurusan, lokasi, dan tahun studi.
-3. Fitur Halaman Experience (/experience/): Menampilkan seluruh pengalaman organisasi, magang, dan kepanitiaan secara dinamis dari model Experience, termasuk status "sedang berlangsung" atau "selesai".
-4. Fitur Halaman Skills (/skills/): Menampilkan peta keahlian teknis (hard skill) dan non-teknis (soft skill) secara dinamis dari model Skill dengan indikator skill bar visual berdasarkan tingkat kemahiran.
-5. Fitur Halaman Achievements (/achievements/): Menampilkan prestasi akademik dan non-akademik secara dinamis dari model Achievement, dilengkapi fitur carousel pratinjau sertifikat untuk penghargaan yang memiliki berkas gambar.
-6. Fitur Halaman Certifications (/certifications/): Menampilkan daftar lisensi dan sertifikasi secara dinamis dari model Certification, mencakup nama penerbit (issuer), rentang masa berlaku, deskripsi, serta tautan pratinjau sertifikat.
+2. Fitur Halaman Education (/education/): Menampilkan riwayat pendidikan secara dinamis dari model Education, lengkap dengan nama institusi, jurusan, lokasi, dan tahun studi. Dilengkapi form untuk menambah, mengubah, dan menghapus data secara langsung melalui web (dilindungi secret key), serta endpoint JSON di `/api/education/`.
+3. Fitur Halaman Experience (/experience/): Menampilkan seluruh pengalaman organisasi, magang, dan kepanitiaan secara dinamis dari model Experience, termasuk status "sedang berlangsung" atau "selesai". Dilengkapi form tambah dan hapus data (dilindungi secret key), serta endpoint JSON di `/api/experience/`.
+4. Fitur Halaman Skills (/skills/): Menampilkan peta keahlian teknis (hard skill) dan non-teknis (soft skill) secara dinamis dari model Skill dengan indikator skill bar visual berdasarkan tingkat kemahiran. Dilengkapi form tambah, ubah, dan hapus data (dilindungi secret key), serta endpoint JSON di `/api/skills/`.
+5. Fitur Halaman Achievements (/achievements/): Menampilkan prestasi akademik dan non-akademik secara dinamis dari model Achievement, dilengkapi fitur carousel pratinjau sertifikat untuk penghargaan yang memiliki berkas gambar. Dilengkapi form tambah, ubah, dan hapus data (dilindungi secret key), serta endpoint JSON di `/api/achievements/`.
+6. Fitur Halaman Certifications (/certifications/): Menampilkan daftar lisensi dan sertifikasi secara dinamis dari model Certification, mencakup nama penerbit (issuer), rentang masa berlaku, deskripsi, serta tautan pratinjau sertifikat. Dilengkapi form tambah, ubah, dan hapus data (dilindungi secret key), serta endpoint JSON di `/api/certifications/`.
 
 ## Tech Stack
 - Django: Berfungsi sebagai backend server yang mengelola routing URL, logika *view*, koneksi ke basis data melalui Django ORM, serta rendering *template* dinamis menggunakan Django Template Language.
-- SQLite (lokal) / PostgreSQL (PWS): Basis data yang menyimpan data model `Experience` dan `Education`, memungkinkan konten ditambah atau diubah melalui Django Admin tanpa mengedit kode secara langsung.
+- SQLite (lokal) / PostgreSQL (PWS): Basis data yang menyimpan seluruh data model (Experience, Education, Skill, Achievement, Certification), memungkinkan konten ditambah, diubah, atau dihapus melalui Django Admin maupun form pada halaman web tanpa mengedit kode secara langsung.
+- python-decouple: Mengelola environment variable seperti secret key untuk proteksi form, memisahkan konfigurasi sensitif dari kode sumber agar tidak ikut ter-commit ke repository.
 - HTML5: Mengatur hirarki dan struktur dokumen menggunakan elemen semantik (`<header>`, `<nav>`, `<main>`, `<section>`, `<footer>`), serta Django Template Language untuk menampilkan data dinamis (`{% for %}`, `{% if %}`, `{% url %}`).
 - CSS3 Murni: Mengelola tata letak dan estetika visual secara responsif menggunakan CSS Grid, Flexbox, Custom Properties, serta Media Queries.
+- JavaScript (Vanilla): Menangani interaksi AJAX untuk proses hapus data secara asinkronus tanpa reload halaman, termasuk validasi secret key dan pembaruan tampilan secara langsung.
 - PWS (Pacil Web Service): Platform deployment yang digunakan untuk menjalankan proyek secara live, menggunakan Gunicorn sebagai WSGI server dan Whitenoise untuk menyajikan berkas statis.
 
 ## Cara Menjalankan Proyek
@@ -110,3 +112,29 @@ Penggunaan AI terutama mencakup:
 
 #### Refleksi Kritis terhadap Penggunaan AI:
 AI membantu mempercepat proses memahami konsep dan menganalisis beberapa masalah teknis selama pengerjaan. Namun, saran dari AI tidak langsung diterapkan tanpa pemeriksaan. Setiap perubahan tetap diuji melalui terminal, browser, dan Django yang digunakan. AI juga tidak memiliki akses langsung ke lingkungan proyek saya, sehingga beberapa saran awal (misalnya terkait struktur file atau environment) perlu saya sesuaikan sendiri dengan kondisi proyek yang sebenarnya. Penggunaan AI juga menjadi pengingat bahwa memahami alasan di balik suatu solusi tetap penting agar saya dapat menyelesaikan masalah serupa secara mandiri.
+
+
+### Tugas 3
+1. Saya menggunakan `ModelForm` alih-alih membuat form HTML secara manual karena `ModelForm` dapat membuat field form berdasarkan struktur model yang sudah didefinisikan, termasuk tipe data, `max_length`, `choices`, serta validasi `blank` dan `null`. Dengan begitu, saya tidak perlu menulis ulang validasi yang sudah terdapat pada model dan dapat menjaga konsistensi antara model dan form. `ModelForm` juga menyediakan method `save()` yang dapat digunakan untuk menyimpan data ke database tanpa perlu menulis query secara manual. Selain itu, saya menggunakan `{% csrf_token %}` pada form karena Django menerapkan perlindungan terhadap CSRF untuk request yang mengubah data, seperti POST. Token CSRF digunakan oleh Django untuk memverifikasi bahwa request tersebut berasal dari sumber yang sah dan bukan request yang dikirim oleh situs lain atas nama pengguna.
+
+2. Menurut saya, JSON lebih banyak digunakan dibandingkan XML dalam pengembangan aplikasi web modern karena sintaksnya lebih sederhana dan ringkas. JSON menggunakan struktur seperti object dan array sehingga lebih mudah dibaca dan diproses oleh aplikasi web. JSON juga memiliki dukungan bawaan pada JavaScript melalui `JSON.parse()` dan `JSON.stringify()`, serta didukung oleh berbagai bahasa pemrograman seperti Python, Java, dan lainnya. Hal ini membuat JSON mudah digunakan sebagai format pertukaran data antara frontend dan backend, termasuk pada RESTful API. XML tetap digunakan pada beberapa sistem, terutama sistem enterprise dan aplikasi lama, tetapi untuk kebutuhan web seperti proyek saya, JSON lebih praktis digunakan.
+
+3. Ketika fungsi view mengembalikan data dalam bentuk JSON, alurnya dimulai dari client yang mengirim HTTP request ke endpoint tertentu, misalnya `/api/education/`. View kemudian mengambil data dari database menggunakan Django ORM, misalnya melalui `Model.objects.all()`, yang menghasilkan sebuah `QuerySet` berisi objek model. Objek tersebut perlu diubah ke format yang dapat dikirim melalui HTTP. Oleh karena itu, saya menggunakan proses serialization, misalnya dengan `serializers.serialize("json", queryset)`, untuk mengubah data model menjadi representasi JSON. Hasil tersebut kemudian dikembalikan melalui `HttpResponse` dengan `content_type="application/json"` sehingga client dapat mengenali format data yang diterima. Dengan serialization, data yang awalnya berupa objek model Python dapat digunakan sebagai format pertukaran data yang dapat dipahami oleh client atau aplikasi lain.
+
+## AI Disclosure
+Tools yang digunakan: Claude
+
+#### Peran AI dalam Pengembangan:
+Penggunaan AI terutama mencakup:
+1. Memberikan contoh dan arahan dalam menyusun ModelForm, view (create, update, delete, dan JSON delivery), serta URL routing berdasarkan pola dari Tutorial 03.
+2. Membantu debugging error seperti `TemplateSyntaxError` akibat penggunaan tag `{% static %}` dan `NoReverseMatch` akibat URL pattern yang belum terdaftar.
+3. Memberikan saran terkait styling CSS untuk tampilan responsif dan tata letak tombol aksi.
+4. Menjelaskan konsep Git branching dan konvensi commit message yang saya terapkan.
+
+#### Bagian yang Dikerjakan Manual:
+1. Pemilihan model Education, Skill, Achievement, dan Certification sebagai bagian tambahan untuk Tugas 3
+2. Penyesuaian field form dan struktur data agar sesuai dengan kebutuhan proyek saya
+3. Implementasi kode ke dalam proyek, serta pengujian manual seluruh alur CRUD dan JSON delivery melalui browser untuk memastikan implementasi berjalan sesuai yang diharapkan sebelum melakukan commit final.
+
+#### Refleksi Kritis terhadap Penggunaan AI:
+AI cukup membantu dalam menyusun kerangka kode awal ModelForm, view CRUD, dan URL routing untuk Education, Skill, Achievement, dan Certification karena pola implementasinya berulang. Namun, hasil AI tetap memerlukan penyesuaian. Beberapa masalah, seperti duplikasi struktur modal delete dan kesalahan path gambar pada Achievement dan Certification, baru ditemukan setelah pengujian langsung di browser. Saya juga tidak mengikuti seluruh saran AI, seperti penggunaan confirm() untuk delete, karena memilih mempertahankan mekanisme AJAX dan secret key agar konsisten dengan Experience pada Tutorial 3. Pengalaman ini menunjukkan bahwa AI membantu mempercepat proses coding dan debugging, tetapi hasilnya tetap perlu disesuaikan dengan kondisi proyek dan diverifikasi secara manual.

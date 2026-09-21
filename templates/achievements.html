@@ -1,123 +1,92 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
+{% block meta %}
     <title>{{ name }} - Achievements</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-    <header class="site-header">
+{% endblock meta %}
+{% block content %}
+<main>
+    <section class="experience-section" id="achievements">
         <div class="container">
-            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
-            <nav>
-                <a href="{% url 'main:show_main' %}">Profile</a>
-                <a href="{% url 'main:show_education' %}">Education</a>
-                <a href="{% url 'main:show_skills' %}">Skills</a>
-                <a href="{% url 'main:show_experience' %}">Experience</a>
-                <a href="{% url 'main:show_achievements' %}">Achievements</a>
-                <a href="{% url 'main:show_certifications' %}">Certifications</a>
-            </nav>
-        </div>
-    </header>
-
-    <main>
-        <section class="achievements" id="achievements">
-            <div class="container">
+            <div class="project-header">
                 <h1>Achievements</h1>
-
-                <h3 class="achievement-category">A. Academic</h3>
-                <div class="achievements-list">
-                    {% for item in academic_achievements %}
-                        <div class="achievement-item">
-                            <span class="achievement-icon">{{ item.icon }}</span>
-                            <div>
-                                <p class="achievement-year">{{ item.year }}</p>
-                                <h4>{{ item.title }}</h4>
-                                <p>{{ item.description }}</p>
-                            </div>
-                        </div>
-                    {% empty %}
-                        <p class="empty-state">No academic achievements added yet.</p>
-                    {% endfor %}
-                </div>
-
-                <h3 class="achievement-category">B. Non Academic</h3>
-                <div class="achievements-list">
-                    {% for item in non_academic_achievements %}
-                        <div class="achievement-item">
-                            <span class="achievement-icon">{{ item.icon }}</span>
-                            <div>
-                                <p class="achievement-year">{{ item.year }}</p>
-                                <h4>{{ item.title }}</h4>
-                                <p>{{ item.description }}</p>
-                            </div>
-                        </div>
-                    {% empty %}
-                        <p class="empty-state">No non-academic achievements added yet.</p>
-                    {% endfor %}
-                </div>
-
-                {% if carousel_items %}
-                <h3 class="carousel-title">Certificates & Documentation</h3>
-                <div class="carousel-wrapper">
-                    <button type="button" class="carousel-btn prev" id="carouselPrev">❮</button>
-                    <div class="carousel-track" id="certCarousel">
-                        {% for item in carousel_items %}
-                            <div class="carousel-card">
-                                <img src="{{ item.image }}" alt="{{ item.title }}">
-                                <p>{{ item.title }}</p>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    <button type="button" class="carousel-btn next" id="carouselNext">❯</button>
-                </div>
-                {% endif %}
+                <a href="{% url 'main:create_achievement' %}" class="button project-add-button">
+                    <span aria-hidden="true">+</span>
+                    Add Achievement
+                </a>
             </div>
-        </section>
-    </main>
 
-    <footer class="site-footer">
-        <div class="container">
-            <p>&copy; 2026 {{ name }}. Faculty of Computer Science, Universitas Indonesia.</p>
+            <h3 class="achievement-category">A. Academic</h3>
+            <div class="achievements-list">
+                {% for item in academic_achievements %}
+                    <div class="achievement-item" id="achievement-item-{{ item.id }}">
+                        <span class="achievement-icon">{{ item.icon }}</span>
+                        <div class="achievement-content">
+                            <p class="achievement-year">{{ item.year }}</p>
+                            <h4>{{ item.title }}</h4>
+                            <p>{{ item.description }}</p>
+                        </div>
+                        <div class="achievement-actions">
+                            <a href="{% url 'main:update_achievement' item.id %}" class="button">Edit</a>
+                            {% include "components/achievement_delete_modal.html" with item=item %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="empty-state">No academic achievements added yet.</p>
+                {% endfor %}
+            </div>
+
+            <h3 class="achievement-category">B. Non Academic</h3>
+            <div class="achievements-list">
+                {% for item in non_academic_achievements %}
+                    <div class="achievement-item" id="achievement-item-{{ item.id }}">
+                        <span class="achievement-icon">{{ item.icon }}</span>
+                        <div class="achievement-content">
+                            <p class="achievement-year">{{ item.year }}</p>
+                            <h4>{{ item.title }}</h4>
+                            <p>{{ item.description }}</p>
+                        </div>
+                        <div class="achievement-actions">
+                            <a href="{% url 'main:update_achievement' item.id %}" class="button">Edit</a>
+                            {% include "components/achievement_delete_modal.html" with item=item %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="empty-state">No non-academic achievements added yet.</p>
+                {% endfor %}
+            </div>
+
+            {% if carousel_items %}
+            <h3 class="carousel-title">Certificates & Documentation</h3>
+            <div class="carousel-wrapper">
+                <button type="button" class="carousel-btn prev" id="carouselPrev">❮</button>
+                <div class="carousel-track" id="certCarousel">
+                    {% for item in carousel_items %}
+                        <div class="carousel-card">
+                            <img src="{% static 'img/'|add:item.image %}" alt="{{ item.title }}">
+                            <p>{{ item.title }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="carousel-btn next" id="carouselNext">❯</button>
+            </div>
+            {% endif %}
         </div>
-    </footer>
+    </section>
+</main>
 
-    <!-- Back to Top Button -->
-    <button id="backToTop" class="back-to-top" aria-label="Back to top">↑</button>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const track = document.getElementById("certCarousel");
+        const prevBtn = document.getElementById("carouselPrev");
+        const nextBtn = document.getElementById("carouselNext");
 
-    <script>
-        // Script untuk Back to Top
-        const backToTopBtn = document.getElementById('backToTop');
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 300) { 
-                backToTopBtn.classList.add('show');
-            } else {
-                backToTopBtn.classList.remove('show');
-            }
-        });
-        backToTopBtn.addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-
-        // Script untuk Carousel Scroll
-        document.addEventListener("DOMContentLoaded", function () {
-            const track = document.getElementById("certCarousel");
-            const prevBtn = document.getElementById("carouselPrev");
-            const nextBtn = document.getElementById("carouselNext");
-
-            if (track && prevBtn && nextBtn) {
-                prevBtn.addEventListener("click", () => {
-                    track.scrollBy({ left: -220, behavior: "smooth" });
-                });
-                nextBtn.addEventListener("click", () => {
-                    track.scrollBy({ left: 220, behavior: "smooth" });
-                });
-            }
-        });
-    </script>
-</body>
-</html>
+        if (track && prevBtn && nextBtn) {
+            prevBtn.addEventListener("click", () => {
+                track.scrollBy({ left: -220, behavior: "smooth" });
+            });
+            nextBtn.addEventListener("click", () => {
+                track.scrollBy({ left: 220, behavior: "smooth" });
+            });
+        }
+    });
+</script>
+{% endblock content %}

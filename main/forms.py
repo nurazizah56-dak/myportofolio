@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import ModelForm, TextInput, Textarea, URLInput, Select, DateTimeInput, NumberInput
 
-from main.models import Experience, Education, Skill, Achievement
+from main.models import Experience, Education, Skill, Achievement, Certification
 
 
 class ExperienceForm(ModelForm):
@@ -132,4 +132,38 @@ class AchievementForm(ModelForm):
             "category": Select(),
             "icon": TextInput(attrs={"placeholder": "🏆"}),
             "image": TextInput(attrs={"placeholder": "/static/img/achievement-example.jpg"}),
+        }
+
+class CertificationForm(ModelForm):
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"placeholder": "Secret key"}),
+        label="Secret Key",
+        required=True,
+    )
+
+    class Meta:
+        model = Certification
+        fields = [
+            "title",
+            "issuer",
+            "date_range",
+            "description",
+            "icon",
+            "image",
+        ]
+        labels = {
+            "title": "Title",
+            "issuer": "Issuer",
+            "date_range": "Date Range",
+            "description": "Description",
+            "icon": "Icon (emoji)",
+            "image": "Image path",
+        }
+        widgets = {
+            "title": TextInput(attrs={"placeholder": "Python Programming Certificate"}),
+            "issuer": TextInput(attrs={"placeholder": "Dicoding Indonesia"}),
+            "date_range": TextInput(attrs={"placeholder": "July 2025 - July 2027"}),
+            "description": Textarea(attrs={"placeholder": "Short description (optional)", "rows": 3}),
+            "icon": TextInput(attrs={"placeholder": "📜"}),
+            "image": TextInput(attrs={"placeholder": "/static/img/cert-example.png"}),
         }

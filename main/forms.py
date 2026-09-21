@@ -131,5 +131,5 @@ class AchievementForm(ModelForm):
             "year": NumberInput(attrs={"placeholder": "2026"}),
             "category": Select(),
             "icon": TextInput(attrs={"placeholder": "🏆"}),
-            "image": TextInput(attrs={"placeholder": "achievement-example.jpg"}),
+            "image": TextInput(attrs={"placeholder": "/static/img/achievement-example.jpg"}),
         }

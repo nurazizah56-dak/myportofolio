@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.conf import settings
 from django.http import JsonResponse
 
-from main.forms import ExperienceForm, EducationForm, SkillForm, AchievementForm
+from main.forms import ExperienceForm, EducationForm, SkillForm, AchievementForm, CertificationForm
 from main.models import Experience, Education, Skill, Achievement, Certification
 
 

@@ -17,6 +17,10 @@ from main.views import (
     delete_skill, 
     get_skill_json,
     show_achievements,
+    create_achievement, 
+    update_achievement, 
+    delete_achievement, 
+    get_achievement_json,
     show_certifications,
 )
 
@@ -39,5 +43,9 @@ urlpatterns = [
     path("skills/<uuid:skill_id>/delete/", delete_skill, name="delete_skill"),
     path("api/skills/", get_skill_json, name="get_skill_json"),
     path("achievements/", show_achievements, name="show_achievements"),
+    path("achievements/add/", create_achievement, name="create_achievement"),
+    path("achievements/<uuid:achievement_id>/edit/", update_achievement, name="update_achievement"),
+    path("achievements/<uuid:achievement_id>/delete/", delete_achievement, name="delete_achievement"),
+    path("api/achievements/", get_achievement_json, name="get_achievement_json"),
     path("certifications/", show_certifications, name="show_certifications"),
 ]

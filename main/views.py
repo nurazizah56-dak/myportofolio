@@ -14,6 +14,7 @@ from main.models import Experience, Education, Skill, Achievement, Certification
 import datetime
 
 def show_main(request):
+    last_login = request.COOKIES.get('last_login', 'No login session / Cookie not found')
     context = {
         "name": "Nur Azizah",
         "npm": "2506547935",
@@ -23,6 +24,7 @@ def show_main(request):
             "Proven track record of managing tight timelines and diverse stakeholder expectations through student organizations, "
             "academic projects, and teaching assistantships."
         ),
+        "last_login": last_login,
     }
     return render(request, "index.html", context)
 

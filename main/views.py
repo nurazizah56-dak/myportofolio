@@ -7,6 +7,8 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 
 from main.forms import ExperienceForm, EducationForm, SkillForm, AchievementForm, CertificationForm
 from main.models import Experience, Education, Skill, Achievement, Certification
@@ -46,13 +48,13 @@ def show_experience(request):
     }
     return render(request, "experience.html", context)
 
+@login_required(login_url="/login/")
 def create_experience(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = ExperienceForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Incorrect secret key!")
-            return redirect("main:show_experience")
-
         experience = form.save(commit=False)
         experience.save()
         messages.success(request, "New experience added successfully!")
@@ -64,6 +66,7 @@ def create_experience(request):
     }
     return render(request, "experience_form.html", context)
 
+
 def get_experience_json(request):
     category_query = request.GET.get("category", "").strip()
     experiences = Experience.objects.all()
@@ -74,14 +77,14 @@ def get_experience_json(request):
     experiences_json = serializers.serialize("json", experiences)
     return HttpResponse(experiences_json, content_type="application/json")
 
+@login_required(login_url="/login/")
 def delete_experience(request, experience_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     experience = get_object_or_404(Experience, pk=experience_id)
 
     if request.method == "POST":
-        password = request.POST.get("password", "")
-        if password != settings.SECRET_PORTFOLIO_KEY:
-            return JsonResponse({"success": False, "message": "Incorrect secret key"}, status=403)
-
         experience.delete()
         return JsonResponse({"success": True, "message": "Experience deleted successfully"})
 

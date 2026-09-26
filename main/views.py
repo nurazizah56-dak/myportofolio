@@ -408,3 +408,8 @@ def login_user(request):
         "form": form,
     }
     return render(request, "login.html", context)
+
+
+def logout_user(request):
+    logout(request)
+    return redirect("main:show_main")

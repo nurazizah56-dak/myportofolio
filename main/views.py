@@ -5,12 +5,18 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.conf import settings
 from django.http import JsonResponse
+from django.contrib.auth import login, logout
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 
 from main.forms import ExperienceForm, EducationForm, SkillForm, AchievementForm, CertificationForm
 from main.models import Experience, Education, Skill, Achievement, Certification
 
+import datetime
 
 def show_main(request):
+    last_login = request.COOKIES.get('last_login', 'No login session / Cookie not found')
     context = {
         "name": "Nur Azizah",
         "npm": "2506547935",
@@ -20,6 +26,7 @@ def show_main(request):
             "Proven track record of managing tight timelines and diverse stakeholder expectations through student organizations, "
             "academic projects, and teaching assistantships."
         ),
+        "last_login": last_login,
     }
     return render(request, "index.html", context)
 
@@ -41,13 +48,13 @@ def show_experience(request):
     }
     return render(request, "experience.html", context)
 
+@login_required(login_url="/login/")
 def create_experience(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = ExperienceForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Incorrect secret key!")
-            return redirect("main:show_experience")
-
         experience = form.save(commit=False)
         experience.save()
         messages.success(request, "New experience added successfully!")
@@ -69,18 +76,48 @@ def get_experience_json(request):
     experiences_json = serializers.serialize("json", experiences)
     return HttpResponse(experiences_json, content_type="application/json")
 
+@login_required(login_url="/login/")
+def update_experience(request, experience_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
+    experience = get_object_or_404(Experience, pk=experience_id)
+    form = ExperienceForm(request.POST or None, instance=experience)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Experience updated successfully!")
+        return redirect("main:show_experience")
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+        "experience": experience,
+    }
+    return render(request, "experience_form.html", context)
+
+@login_required(login_url="/login/")
 def delete_experience(request, experience_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     experience = get_object_or_404(Experience, pk=experience_id)
 
     if request.method == "POST":
-        password = request.POST.get("password", "")
-        if password != settings.SECRET_PORTFOLIO_KEY:
-            return JsonResponse({"success": False, "message": "Incorrect secret key"}, status=403)
-
         experience.delete()
         return JsonResponse({"success": True, "message": "Experience deleted successfully"})
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
+
+@login_required(login_url="/login/")
+def toggle_star_experience(request, experience_id):
+    experience = get_object_or_404(Experience, pk=experience_id)
+    if request.method == "POST":
+        if request.user in experience.starred_by.all():
+            experience.starred_by.remove(request.user)
+        else:
+            experience.starred_by.add(request.user)
+        return redirect("main:show_experience")
+    return redirect("main:show_experience")
 
 
 def show_education(request):
@@ -377,3 +414,42 @@ def delete_certification(request, certification_id):
         return JsonResponse({"success": True, "message": "Certification deleted successfully"})
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
+
+
+
+def register(request):
+    form = UserCreationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Account created successfully. Please login.")
+        return redirect("main:login")
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+    }
+    return render(request, "register.html", context)
+
+
+def login_user(request):
+    form = AuthenticationForm(request, data=request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        user = form.get_user()
+        login(request, user)
+        response = redirect("main:show_main")
+        response.set_cookie('last_login', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        return response
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+    }
+    return render(request, "login.html", context)
+
+
+def logout_user(request):
+    logout(request)
+    response = redirect("main:show_main")
+    response.delete_cookie('last_login')
+    return response

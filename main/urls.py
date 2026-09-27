@@ -5,6 +5,7 @@ from main.views import (
     show_experience, 
     create_experience,
     get_experience_json,
+    update_experience,
     delete_experience,
     show_education, 
     create_education,
@@ -26,6 +27,7 @@ from main.views import (
     update_certification, 
     delete_certification, 
     get_certification_json,
+    register, login_user, logout_user, toggle_star_experience,
 )
 
 app_name = "main"
@@ -35,7 +37,9 @@ urlpatterns = [
     path("experience/", show_experience, name="show_experience"),
     path("experience/add/", create_experience, name="create_experience"),
     path("api/experience/", get_experience_json, name="get_experience_json"),
+    path("experience/<uuid:experience_id>/edit/", update_experience, name="update_experience"),
     path("experience/<uuid:experience_id>/delete/", delete_experience, name="delete_experience"),
+    path("experience/<uuid:experience_id>/star/", toggle_star_experience, name="toggle_star_experience"),
     path("education/", show_education, name="show_education"),
     path("education/add/", create_education, name="create_education"),
     path("education/<uuid:education_id>/edit/", update_education, name="update_education"),
@@ -56,4 +60,7 @@ urlpatterns = [
     path("certifications/<uuid:certification_id>/edit/", update_certification, name="update_certification"),
     path("certifications/<uuid:certification_id>/delete/", delete_certification, name="delete_certification"),
     path("api/certifications/", get_certification_json, name="get_certification_json"),
+    path("register/", register, name="register"),
+    path("login/", login_user, name="login"),
+    path("logout/", logout_user, name="logout"),
 ]

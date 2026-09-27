@@ -712,6 +712,8 @@ html {
     border-radius: var(--radius);
     display: flex;
     flex-direction: column;
+    margin-bottom: 0.5rem;
+
 }
 
 .experience-category {
@@ -739,6 +741,25 @@ html {
     margin-top: 1rem;
     font-size: 0.85rem;
     font-weight: 600;
+}
+
+.experience-actions-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.experience-actions-row .star-form {
+    display: block;
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.experience-actions-row .button {
+    flex: 1;
+    margin-bottom: 0;
+    text-align: center;
 }
 
 /* experience & project form */
@@ -1161,4 +1182,29 @@ html {
         flex: 1;
         text-align: center;
     }
+}
+
+.star-form {
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.button-star {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    background: var(--ink);
+    width: 100%;
+}
+
+.button-star.is-starred {
+    background: var(--accent);
+}
+
+.star-count {
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    font-size: 0.8rem;
 }

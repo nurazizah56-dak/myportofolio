@@ -5,12 +5,6 @@ from main.models import Experience, Education, Skill, Achievement, Certification
 
 
 class ExperienceForm(ModelForm):
-    password = forms.CharField(
-        widget=forms.PasswordInput(attrs={"placeholder": "Secret key"}),
-        label="Secret Key",
-        required=True,
-    )
-
     class Meta:
         model = Experience
         fields = [

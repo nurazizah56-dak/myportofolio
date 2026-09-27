@@ -7,11 +7,13 @@ from main.views import (
     get_experience_json,
     update_experience,
     delete_experience,
+    toggle_star_experience,
     show_education, 
     create_education,
     update_education,
     delete_education,
     get_education_json,
+    toggle_star_education,
     show_skills, 
     create_skill, 
     update_skill, 
@@ -27,7 +29,7 @@ from main.views import (
     update_certification, 
     delete_certification, 
     get_certification_json,
-    register, login_user, logout_user, toggle_star_experience,
+    register, login_user, logout_user,
 )
 
 app_name = "main"
@@ -45,6 +47,7 @@ urlpatterns = [
     path("education/<uuid:education_id>/edit/", update_education, name="update_education"),
     path("education/<uuid:education_id>/delete/", delete_education, name="delete_education"),
     path("api/education/", get_education_json, name="get_education_json"),
+    path("education/<uuid:education_id>/star/", toggle_star_education, name="toggle_star_education"),
     path("skills/", show_skills, name="show_skills"),
     path("skills/add/", create_skill, name="create_skill"),
     path("skills/<uuid:skill_id>/edit/", update_skill, name="update_skill"),

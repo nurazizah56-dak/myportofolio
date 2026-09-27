@@ -9,10 +9,12 @@
             <p class="section-kicker">My educational background</p>
             <div class="project-header">
                 <h1>Education</h1>
-                <a href="{% url 'main:create_education' %}" class="button project-add-button">
-                    <span aria-hidden="true">+</span>
-                    Add Education
-                </a>
+                {% if user.is_superuser %}
+                    <a href="{% url 'main:create_education' %}" class="button project-add-button">
+                        <span aria-hidden="true">+</span>
+                        Add Education
+                    </a>
+                {% endif %}
             </div>
 
             <div class="education-grid">
@@ -31,9 +33,16 @@
                         <p class="education-year">
                             {{ edu.start_year }} - {% if edu.is_ongoing %}Present{% else %}{{ edu.end_year }}{% endif %}
                         </p>
+
+                        {% include "components/education_star.html" with edu=edu %}
+
                         <div class="education-actions">
-                            <a href="{% url 'main:update_education' edu.id %}" class="button">Edit</a>
-                            {% include "components/education_delete_modal.html" with edu=edu %}
+                            {% if user.is_superuser or is_editor %}
+                                <a href="{% url 'main:update_education' edu.id %}" class="button">Edit</a>
+                            {% endif %}
+                            {% if user.is_superuser %}
+                                {% include "components/education_delete_modal.html" with edu=edu %}
+                            {% endif %}
                         </div>
                     </div>
                 {% empty %}

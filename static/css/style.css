@@ -1164,7 +1164,8 @@ html {
 }
 
 .star-form {
-    display: inline;
+    display: block;
+    margin-bottom: 0.75rem;
 }
 
 .button-star {

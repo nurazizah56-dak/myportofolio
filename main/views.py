@@ -66,7 +66,6 @@ def create_experience(request):
     }
     return render(request, "experience_form.html", context)
 
-
 def get_experience_json(request):
     category_query = request.GET.get("category", "").strip()
     experiences = Experience.objects.all()
@@ -77,6 +76,24 @@ def get_experience_json(request):
     experiences_json = serializers.serialize("json", experiences)
     return HttpResponse(experiences_json, content_type="application/json")
 
+@login_required(login_url="/login/")
+def update_experience(request, experience_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
+    experience = get_object_or_404(Experience, pk=experience_id)
+    form = ExperienceForm(request.POST or None, instance=experience)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Experience updated successfully!")
+        return redirect("main:show_experience")
+
+    context = {
+        "name": "Nur Azizah",
+        "form": form,
+        "experience": experience,
+    }
+    return render(request, "experience_form.html", context)
 
 @login_required(login_url="/login/")
 def delete_experience(request, experience_id):
@@ -90,7 +107,6 @@ def delete_experience(request, experience_id):
         return JsonResponse({"success": True, "message": "Experience deleted successfully"})
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
-
 
 @login_required(login_url="/login/")
 def toggle_star_experience(request, experience_id):

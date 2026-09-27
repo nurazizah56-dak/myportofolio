@@ -89,6 +89,11 @@
 
             e.preventDefault();
 
+            const itemName = form.closest(".project-delete-modal__content").querySelector("strong").textContent;
+            if (!confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
+                return;
+            }
+
             const url = form.dataset.deleteUrl;
             const errorEl = form.querySelector(".delete-error-message");
             const passwordInput = form.querySelector(".delete-password-input");

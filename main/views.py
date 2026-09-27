@@ -414,24 +414,29 @@ def show_certifications(request):
     )
     certification_list = sorted([c.object for c in certifications], key=lambda c: c.title)
 
+    is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
+
     context = {
         "name": "Nur Azizah",
         "certification_list": certification_list,
+        "is_editor": is_editor,
     }
     return render(request, "certifications.html", context)
 
+
 def get_certification_json(request):
     certifications = Certification.objects.all()
-    certifications_json = serializers.serialize("json", certifications)
+    certifications_json = serializers.serialize("json", certifications, use_natural_foreign_keys=True)
     return HttpResponse(certifications_json, content_type="application/json")
 
+
+@login_required(login_url="/login/")
 def create_certification(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = CertificationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Incorrect secret key!")
-            return redirect("main:show_certifications")
-
         certification = form.save(commit=False)
         certification.save()
         messages.success(request, "Certification added successfully!")
@@ -443,14 +448,16 @@ def create_certification(request):
     }
     return render(request, "certification_form.html", context)
 
+
+@login_required(login_url="/login/")
 def update_certification(request, certification_id):
+    is_editor = request.user.groups.filter(name="Editor").exists()
+    if not (request.user.is_superuser or is_editor):
+        raise PermissionDenied
+
     certification = get_object_or_404(Certification, pk=certification_id)
     form = CertificationForm(request.POST or None, instance=certification)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Incorrect secret key!")
-            return redirect("main:show_certifications")
-
         form.save()
         messages.success(request, "Certification updated successfully!")
         return redirect("main:show_certifications")
@@ -462,18 +469,31 @@ def update_certification(request, certification_id):
     }
     return render(request, "certification_form.html", context)
 
+
+@login_required(login_url="/login/")
 def delete_certification(request, certification_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     certification = get_object_or_404(Certification, pk=certification_id)
 
     if request.method == "POST":
-        password = request.POST.get("password", "")
-        if password != settings.SECRET_PORTFOLIO_KEY:
-            return JsonResponse({"success": False, "message": "Incorrect secret key"}, status=403)
-
         certification.delete()
         return JsonResponse({"success": True, "message": "Certification deleted successfully"})
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
+
+
+@login_required(login_url="/login/")
+def toggle_star_certification(request, certification_id):
+    certification = get_object_or_404(Certification, pk=certification_id)
+    if request.method == "POST":
+        if request.user in certification.starred_by.all():
+            certification.starred_by.remove(request.user)
+        else:
+            certification.starred_by.add(request.user)
+        return redirect("main:show_certifications")
+    return redirect("main:show_certifications")
 
 
 

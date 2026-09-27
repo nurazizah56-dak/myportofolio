@@ -8,10 +8,12 @@
         <div class="container">
             <div class="project-header">
                 <h1>Licenses & Certifications</h1>
-                <a href="{% url 'main:create_certification' %}" class="button project-add-button">
-                    <span aria-hidden="true">+</span>
-                    Add Certification
-                </a>
+                {% if user.is_superuser %}
+                    <a href="{% url 'main:create_certification' %}" class="button project-add-button">
+                        <span aria-hidden="true">+</span>
+                        Add Certification
+                    </a>
+                {% endif %}
             </div>
             <div class="cert-list">
                 {% for cert in certification_list %}
@@ -28,8 +30,13 @@
                             </a>
                         {% endif %}
                         <div class="cert-actions">
-                            <a href="{% url 'main:update_certification' cert.id %}" class="button">Edit</a>
-                            {% include "components/certification_delete_modal.html" with cert=cert %}
+                            {% include "components/certification_star.html" with cert=cert %}
+                            {% if user.is_superuser or is_editor %}
+                                <a href="{% url 'main:update_certification' cert.id %}" class="button">Edit</a>
+                            {% endif %}
+                            {% if user.is_superuser %}
+                                {% include "components/certification_delete_modal.html" with cert=cert %}
+                            {% endif %}
                         </div>
                     </div>
                 {% empty %}

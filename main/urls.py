@@ -31,6 +31,7 @@ from main.views import (
     update_certification, 
     delete_certification, 
     get_certification_json,
+    toggle_star_certification,
     register, login_user, logout_user,
 )
 
@@ -67,6 +68,7 @@ urlpatterns = [
     path("certifications/<uuid:certification_id>/edit/", update_certification, name="update_certification"),
     path("certifications/<uuid:certification_id>/delete/", delete_certification, name="delete_certification"),
     path("api/certifications/", get_certification_json, name="get_certification_json"),
+    path("certifications/<uuid:certification_id>/star/", toggle_star_certification, name="toggle_star_certification"),
     path("register/", register, name="register"),
     path("login/", login_user, name="login"),
     path("logout/", logout_user, name="logout"),

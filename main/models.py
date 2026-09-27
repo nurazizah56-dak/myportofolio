@@ -57,6 +57,7 @@ class Skill(models.Model):
     name = models.CharField(max_length=255)
     score = models.DecimalField(max_digits=3, decimal_places=1, default=0)  # 0.0 - 10.0
     order = models.PositiveIntegerField(default=0, help_text="Urutan tampil, angka kecil duluan")
+    starred_by = models.ManyToManyField(User, related_name="starred_skills", blank=True)
 
     class Meta:
         ordering = ['category', 'order', '-score']

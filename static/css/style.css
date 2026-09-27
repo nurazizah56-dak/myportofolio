@@ -1208,3 +1208,17 @@ html {
     background: rgba(255, 255, 255, 0.25);
     font-size: 0.8rem;
 }
+
+.button-star-icon {
+    border: 0;
+    background: transparent;
+    color: var(--accent-dark);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0.1rem 0.3rem;
+}
+
+.button-star-icon.is-starred {
+    color: var(--accent);
+    font-weight: 700;
+}

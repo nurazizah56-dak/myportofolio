@@ -31,6 +31,7 @@ def show_main(request):
     return render(request, "index.html", context)
 
 
+
 def show_experience(request):
     json_response = get_experience_json(request)
     experiences = serializers.deserialize(
@@ -47,6 +48,7 @@ def show_experience(request):
         "category_query": category_query,
     }
     return render(request, "experience.html", context)
+
 
 @login_required(login_url="/login/")
 def create_experience(request):
@@ -66,6 +68,7 @@ def create_experience(request):
     }
     return render(request, "experience_form.html", context)
 
+
 def get_experience_json(request):
     category_query = request.GET.get("category", "").strip()
     experiences = Experience.objects.all()
@@ -75,6 +78,7 @@ def get_experience_json(request):
 
     experiences_json = serializers.serialize("json", experiences)
     return HttpResponse(experiences_json, content_type="application/json")
+
 
 @login_required(login_url="/login/")
 def update_experience(request, experience_id):
@@ -95,6 +99,7 @@ def update_experience(request, experience_id):
     }
     return render(request, "experience_form.html", context)
 
+
 @login_required(login_url="/login/")
 def delete_experience(request, experience_id):
     if not request.user.is_superuser:
@@ -108,6 +113,7 @@ def delete_experience(request, experience_id):
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
 
+
 @login_required(login_url="/login/")
 def toggle_star_experience(request, experience_id):
     experience = get_object_or_404(Experience, pk=experience_id)
@@ -118,6 +124,7 @@ def toggle_star_experience(request, experience_id):
             experience.starred_by.add(request.user)
         return redirect("main:show_experience")
     return redirect("main:show_experience")
+
 
 
 def show_education(request):
@@ -210,6 +217,7 @@ def toggle_star_education(request, education_id):
     return redirect("main:show_education")
 
 
+
 def show_skills(request):
     json_response = get_skill_json(request)
     skills = serializers.deserialize(
@@ -217,52 +225,52 @@ def show_skills(request):
         json_response.content.decode("utf-8"),
     )
     skills = [s.object for s in skills]
-
     soft_skills = [s for s in skills if s.category == "soft"]
     hard_skills = [s for s in skills if s.category == "hard"]
-
+    is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
     context = {
         "name": "Nur Azizah",
         "soft_skills": soft_skills,
         "hard_skills": hard_skills,
+        "is_editor": is_editor,
     }
     return render(request, "skills.html", context)
 
+
 def get_skill_json(request):
     skills = Skill.objects.all()
-    skills_json = serializers.serialize("json", skills)
+    skills_json = serializers.serialize("json", skills, use_natural_foreign_keys=True)
     return HttpResponse(skills_json, content_type="application/json")
 
+
+@login_required(login_url="/login/")
 def create_skill(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
     form = SkillForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Incorrect secret key!")
-            return redirect("main:show_skills")
-
         skill = form.save(commit=False)
         skill.save()
         messages.success(request, "Skill added successfully!")
         return redirect("main:show_skills")
-
     context = {
         "name": "Nur Azizah",
         "form": form,
     }
     return render(request, "skill_form.html", context)
 
+
+@login_required(login_url="/login/")
 def update_skill(request, skill_id):
+    is_editor = request.user.groups.filter(name="Editor").exists()
+    if not (request.user.is_superuser or is_editor):
+        raise PermissionDenied
     skill = get_object_or_404(Skill, pk=skill_id)
     form = SkillForm(request.POST or None, instance=skill)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Incorrect secret key!")
-            return redirect("main:show_skills")
-
         form.save()
         messages.success(request, "Skill updated successfully!")
         return redirect("main:show_skills")
-
     context = {
         "name": "Nur Azizah",
         "form": form,
@@ -270,18 +278,29 @@ def update_skill(request, skill_id):
     }
     return render(request, "skill_form.html", context)
 
+
+@login_required(login_url="/login/")
 def delete_skill(request, skill_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
     skill = get_object_or_404(Skill, pk=skill_id)
-
     if request.method == "POST":
-        password = request.POST.get("password", "")
-        if password != settings.SECRET_PORTFOLIO_KEY:
-            return JsonResponse({"success": False, "message": "Incorrect secret key"}, status=403)
-
         skill.delete()
         return JsonResponse({"success": True, "message": "Skill deleted successfully"})
-
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
+
+
+@login_required(login_url="/login/")
+def toggle_star_skill(request, skill_id):
+    skill = get_object_or_404(Skill, pk=skill_id)
+    if request.method == "POST":
+        if request.user in skill.starred_by.all():
+            skill.starred_by.remove(request.user)
+        else:
+            skill.starred_by.add(request.user)
+        return redirect("main:show_skills")
+    return redirect("main:show_skills")
+
 
 
 def show_achievements(request):

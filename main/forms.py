@@ -61,12 +61,6 @@ class EducationForm(ModelForm):
         }
 
 class SkillForm(ModelForm):
-    password = forms.CharField(
-        widget=forms.PasswordInput(attrs={"placeholder": "Secret key"}),
-        label="Secret Key",
-        required=True,
-    )
-
     class Meta:
         model = Skill
         fields = [

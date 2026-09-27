@@ -321,26 +321,31 @@ def show_achievements(request):
     )
     carousel_items = [a for a in achievements if a.image]
 
+    is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
+
     context = {
         "name": "Nur Azizah",
         "academic_achievements": academic_achievements,
         "non_academic_achievements": non_academic_achievements,
         "carousel_items": carousel_items,
+        "is_editor": is_editor,
     }
     return render(request, "achievements.html", context)
 
+
 def get_achievement_json(request):
     achievements = Achievement.objects.all()
-    achievements_json = serializers.serialize("json", achievements)
+    achievements_json = serializers.serialize("json", achievements, use_natural_foreign_keys=True)
     return HttpResponse(achievements_json, content_type="application/json")
 
+
+@login_required(login_url="/login/")
 def create_achievement(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = AchievementForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Incorrect secret key!")
-            return redirect("main:show_achievements")
-
         achievement = form.save(commit=False)
         achievement.save()
         messages.success(request, "Achievement added successfully!")
@@ -352,14 +357,16 @@ def create_achievement(request):
     }
     return render(request, "achievement_form.html", context)
 
+
+@login_required(login_url="/login/")
 def update_achievement(request, achievement_id):
+    is_editor = request.user.groups.filter(name="Editor").exists()
+    if not (request.user.is_superuser or is_editor):
+        raise PermissionDenied
+
     achievement = get_object_or_404(Achievement, pk=achievement_id)
     form = AchievementForm(request.POST or None, instance=achievement)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Incorrect secret key!")
-            return redirect("main:show_achievements")
-
         form.save()
         messages.success(request, "Achievement updated successfully!")
         return redirect("main:show_achievements")
@@ -371,18 +378,32 @@ def update_achievement(request, achievement_id):
     }
     return render(request, "achievement_form.html", context)
 
+
+@login_required(login_url="/login/")
 def delete_achievement(request, achievement_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     achievement = get_object_or_404(Achievement, pk=achievement_id)
 
     if request.method == "POST":
-        password = request.POST.get("password", "")
-        if password != settings.SECRET_PORTFOLIO_KEY:
-            return JsonResponse({"success": False, "message": "Incorrect secret key"}, status=403)
-
         achievement.delete()
         return JsonResponse({"success": True, "message": "Achievement deleted successfully"})
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
+
+
+@login_required(login_url="/login/")
+def toggle_star_achievement(request, achievement_id):
+    achievement = get_object_or_404(Achievement, pk=achievement_id)
+    if request.method == "POST":
+        if request.user in achievement.starred_by.all():
+            achievement.starred_by.remove(request.user)
+        else:
+            achievement.starred_by.add(request.user)
+        return redirect("main:show_achievements")
+    return redirect("main:show_achievements")
+
 
 
 def show_certifications(request):

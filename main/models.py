@@ -81,6 +81,7 @@ class Achievement(models.Model):
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='academic')
     icon = models.CharField(max_length=10, default='🏆')
     image = models.CharField(max_length=255, blank=True, null=True, help_text="Path gambar sertifikat untuk carousel")
+    starred_by = models.ManyToManyField(User, related_name="starred_achievements", blank=True)
 
     class Meta:
         ordering = ['-year']

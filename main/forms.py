@@ -83,12 +83,6 @@ class SkillForm(ModelForm):
         }
 
 class AchievementForm(ModelForm):
-    password = forms.CharField(
-        widget=forms.PasswordInput(attrs={"placeholder": "Secret key"}),
-        label="Secret Key",
-        required=True,
-    )
-
     class Meta:
         model = Achievement
         fields = [

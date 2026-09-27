@@ -3,16 +3,19 @@
 {% block meta %}
     <title>{{ name }} - Achievements</title>
 {% endblock meta %}
+
 {% block content %}
 <main>
     <section class="experience-section" id="achievements">
         <div class="container">
             <div class="project-header">
                 <h1>Achievements</h1>
-                <a href="{% url 'main:create_achievement' %}" class="button project-add-button">
-                    <span aria-hidden="true">+</span>
-                    Add Achievement
-                </a>
+                {% if user.is_superuser %}
+                    <a href="{% url 'main:create_achievement' %}" class="button project-add-button">
+                        <span aria-hidden="true">+</span>
+                        Add Achievement
+                    </a>
+                {% endif %}
             </div>
 
             <h3 class="achievement-category">A. Academic</h3>
@@ -26,8 +29,13 @@
                             <p>{{ item.description }}</p>
                         </div>
                         <div class="achievement-actions">
-                            <a href="{% url 'main:update_achievement' item.id %}" class="button">Edit</a>
-                            {% include "components/achievement_delete_modal.html" with item=item %}
+                            {% include "components/achievement_star.html" with item=item %}
+                            {% if user.is_superuser or is_editor %}
+                                <a href="{% url 'main:update_achievement' item.id %}" class="button">Edit</a>
+                            {% endif %}
+                            {% if user.is_superuser %}
+                                {% include "components/achievement_delete_modal.html" with item=item %}
+                            {% endif %}
                         </div>
                     </div>
                 {% empty %}
@@ -46,8 +54,13 @@
                             <p>{{ item.description }}</p>
                         </div>
                         <div class="achievement-actions">
-                            <a href="{% url 'main:update_achievement' item.id %}" class="button">Edit</a>
-                            {% include "components/achievement_delete_modal.html" with item=item %}
+                            {% include "components/achievement_star.html" with item=item %}
+                            {% if user.is_superuser or is_editor %}
+                                <a href="{% url 'main:update_achievement' item.id %}" class="button">Edit</a>
+                            {% endif %}
+                            {% if user.is_superuser %}
+                                {% include "components/achievement_delete_modal.html" with item=item %}
+                            {% endif %}
                         </div>
                     </div>
                 {% empty %}
@@ -73,7 +86,9 @@
         </div>
     </section>
 </main>
+{% endblock content %}
 
+{% block extra_js %}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const track = document.getElementById("certCarousel");
@@ -90,4 +105,4 @@
         }
     });
 </script>
-{% endblock content %}
+{% endblock extra_js %}

@@ -1,0 +1,9 @@
+<form method="post" action="{% url 'main:toggle_star_achievement' item.id %}" class="star-form">
+    {% csrf_token %}
+    <button type="submit"
+            class="button button-star{% if user in item.starred_by.all %} is-starred{% endif %}">
+        <span aria-hidden="true">★</span>
+        {% if user in item.starred_by.all %}Unstar{% else %}Star{% endif %}
+        <span class="star-count">{{ item.starred_by.count }}</span>
+    </button>
+</form>

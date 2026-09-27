@@ -26,7 +26,7 @@ from main.views import (
     update_certification, 
     delete_certification, 
     get_certification_json,
-    register, login_user, logout_user,
+    register, login_user, logout_user, toggle_star_experience,
 )
 
 app_name = "main"
@@ -37,6 +37,7 @@ urlpatterns = [
     path("experience/add/", create_experience, name="create_experience"),
     path("api/experience/", get_experience_json, name="get_experience_json"),
     path("experience/<uuid:experience_id>/delete/", delete_experience, name="delete_experience"),
+    path("experience/<uuid:experience_id>/star/", toggle_star_experience, name="toggle_star_experience"),
     path("education/", show_education, name="show_education"),
     path("education/add/", create_education, name="create_education"),
     path("education/<uuid:education_id>/edit/", update_education, name="update_education"),

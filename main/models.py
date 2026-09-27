@@ -97,6 +97,7 @@ class Certification(models.Model):
     description = models.TextField(blank=True)
     icon = models.CharField(max_length=10, default='📜')
     image = models.CharField(max_length=255, blank=True, null=True)
+    starred_by = models.ManyToManyField(User, related_name="starred_certifications", blank=True)
 
     class Meta: 
         ordering = ['title'] 

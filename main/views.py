@@ -128,19 +128,23 @@ def show_education(request):
     )
     education_list = [e.object for e in education_list]
 
+    is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
+
     context = {
         "name": "Nur Azizah",
         "education_list": education_list,
+        "is_editor": is_editor,
     }
     return render(request, "education.html", context)
 
+
+@login_required(login_url="/login/")
 def create_education(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = EducationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Incorrect secret key!")
-            return redirect("main:show_education")
-
         education = form.save(commit=False)
         education.save()
         messages.success(request, "Education added successfully!")
@@ -152,19 +156,22 @@ def create_education(request):
     }
     return render(request, "education_form.html", context)
 
+
 def get_education_json(request):
     education = Education.objects.all().order_by('-start_year')
-    education_json = serializers.serialize("json", education)
+    education_json = serializers.serialize("json", education, use_natural_foreign_keys=True)
     return HttpResponse(education_json, content_type="application/json")
 
+
+@login_required(login_url="/login/")
 def update_education(request, education_id):
+    is_editor = request.user.groups.filter(name="Editor").exists()
+    if not (request.user.is_superuser or is_editor):
+        raise PermissionDenied
+
     education = get_object_or_404(Education, pk=education_id)
     form = EducationForm(request.POST or None, instance=education)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["password"] != settings.SECRET_PORTFOLIO_KEY:
-            messages.error(request, "Incorrect secret key!")
-            return redirect("main:show_education")
-
         form.save()
         messages.success(request, "Education updated successfully!")
         return redirect("main:show_education")
@@ -176,18 +183,31 @@ def update_education(request, education_id):
     }
     return render(request, "education_form.html", context)
 
+
+@login_required(login_url="/login/")
 def delete_education(request, education_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     education = get_object_or_404(Education, pk=education_id)
 
     if request.method == "POST":
-        password = request.POST.get("password", "")
-        if password != settings.SECRET_PORTFOLIO_KEY:
-            return JsonResponse({"success": False, "message": "Incorrect secret key"}, status=403)
-
         education.delete()
         return JsonResponse({"success": True, "message": "Education deleted successfully"})
 
     return JsonResponse({"success": False, "message": "Invalid request"}, status=405)
+
+
+@login_required(login_url="/login/")
+def toggle_star_education(request, education_id):
+    education = get_object_or_404(Education, pk=education_id)
+    if request.method == "POST":
+        if request.user in education.starred_by.all():
+            education.starred_by.remove(request.user)
+        else:
+            education.starred_by.add(request.user)
+        return redirect("main:show_education")
+    return redirect("main:show_education")
 
 
 def show_skills(request):

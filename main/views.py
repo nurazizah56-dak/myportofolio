@@ -32,20 +32,17 @@ def show_main(request):
 
 
 
-def show_experience(request):
-    json_response = get_experience_json(request)
-    experiences = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    experiences = [experience.object for experience in experiences]
+from django.views.decorators.http import require_POST
 
+def show_experience(request):
     category_query = request.GET.get("category", "").strip()
+    title_query = request.GET.get("title", "").strip()
 
     context = {
         "name": "Nur Azizah",
-        "experience_list": experiences,
         "category_query": category_query,
+        "title_query": title_query,
+        "form": ExperienceForm(),
     }
     return render(request, "experience.html", context)
 
@@ -69,15 +66,55 @@ def create_experience(request):
     return render(request, "experience_form.html", context)
 
 
+@require_POST
+def create_experience_ajax(request):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Only the portfolio owner can add an experience."},
+            status=403,
+        )
+    form = ExperienceForm(request.POST)
+    if form.is_valid():
+        experience = form.save()
+        return JsonResponse(
+            {"message": "Experience added successfully.", "pk": str(experience.id)},
+            status=201,
+        )
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
+
 def get_experience_json(request):
     category_query = request.GET.get("category", "").strip()
-    experiences = Experience.objects.all()
+    title_query = request.GET.get("title", "").strip()
+
+    experiences = Experience.objects.prefetch_related('starred_by').all()
 
     if category_query:
         experiences = experiences.filter(category__icontains=category_query)
+    if title_query:
+        experiences = experiences.filter(title__icontains=title_query)
 
-    experiences_json = serializers.serialize("json", experiences)
-    return HttpResponse(experiences_json, content_type="application/json")
+    data = []
+    for exp in experiences:
+        starred_users = exp.starred_by.all()
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        starred_by_names = ", ".join([u.username for u in starred_users])
+        data.append({
+            "pk": str(exp.id),
+            "fields": {
+                "title": exp.title,
+                "description": exp.description,
+                "category": exp.category,
+                "category_display": exp.get_category_display(),
+                "thumbnail": exp.thumbnail,
+                "is_ongoing": exp.is_ongoing,
+                "ended_at": exp.ended_at.strftime("%Y-%m-%d %H:%M") if exp.ended_at else None,
+                "star_count": starred_users.count(),
+                "is_starred": is_starred,
+                "starred_by_names": starred_by_names,
+            }
+        })
+    return JsonResponse(data, safe=False)
 
 
 @login_required(login_url="/login/")

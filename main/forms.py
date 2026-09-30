@@ -29,6 +29,22 @@ class ExperienceForm(ModelForm):
             "ended_at": DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
         }
 
+    def clean_title(self):
+        from django.utils.html import strip_tags
+        from django.core.exceptions import ValidationError
+        title = strip_tags(self.cleaned_data["title"]).strip()
+        if not title:
+            raise ValidationError("Experience title cannot be empty or contain only HTML tags.")
+        return title
+
+    def clean_description(self):
+        from django.utils.html import strip_tags
+        return strip_tags(self.cleaned_data["description"]).strip()
+
+    def clean_category(self):
+        from django.utils.html import strip_tags
+        return strip_tags(self.cleaned_data["category"]).strip()
+
 class EducationForm(ModelForm):
     class Meta:
         model = Education

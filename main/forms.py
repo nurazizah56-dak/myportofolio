@@ -76,6 +76,23 @@ class EducationForm(ModelForm):
             "end_year": NumberInput(attrs={"placeholder": "2028"}),
         }
 
+    def clean_institution_name(self):
+        from django.utils.html import strip_tags
+        from django.core.exceptions import ValidationError
+        institution_name = strip_tags(self.cleaned_data["institution_name"]).strip()
+        if not institution_name:
+            raise ValidationError("Institution name cannot be empty or contain only HTML tags.")
+        return institution_name
+
+    def clean_degree(self):
+        from django.utils.html import strip_tags
+        return strip_tags(self.cleaned_data["degree"]).strip()
+
+    def clean_location(self):
+        from django.utils.html import strip_tags
+        return strip_tags(self.cleaned_data["location"]).strip()
+
+
 class SkillForm(ModelForm):
     class Meta:
         model = Skill

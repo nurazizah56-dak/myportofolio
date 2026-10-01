@@ -165,21 +165,31 @@ def toggle_star_experience(request, experience_id):
 
 
 def show_education(request):
-    json_response = get_education_json(request)
-    education_list = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    education_list = [e.object for e in education_list]
-
-    is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
+    institution_name_query = request.GET.get("institution_name", "").strip()
 
     context = {
         "name": "Nur Azizah",
-        "education_list": education_list,
-        "is_editor": is_editor,
+        "institution_name_query": institution_name_query,
+        "form": EducationForm(),
     }
     return render(request, "education.html", context)
+
+
+@require_POST
+def create_education_ajax(request):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Only the portfolio owner can add education."},
+            status=403,
+        )
+    form = EducationForm(request.POST)
+    if form.is_valid():
+        education = form.save()
+        return JsonResponse(
+            {"message": "Education added successfully.", "pk": str(education.id)},
+            status=201,
+        )
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
 
 
 @login_required(login_url="/login/")
@@ -202,9 +212,35 @@ def create_education(request):
 
 
 def get_education_json(request):
-    education = Education.objects.all().order_by('-start_year')
-    education_json = serializers.serialize("json", education, use_natural_foreign_keys=True)
-    return HttpResponse(education_json, content_type="application/json")
+    institution_name_query = request.GET.get("institution_name", "").strip()
+
+    education = Education.objects.prefetch_related('starred_by').all().order_by('-start_year')
+
+    if institution_name_query:
+        education = education.filter(institution_name__icontains=institution_name_query)
+
+    data = []
+    for edu in education:
+        starred_users = edu.starred_by.all()
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        starred_by_names = ", ".join([u.username for u in starred_users])
+        data.append({
+            "pk": str(edu.id),
+            "fields": {
+                "institution_name": edu.institution_name,
+                "degree": edu.degree,
+                "location": edu.location,
+                "maps_url": edu.maps_url,
+                "logo": edu.logo,
+                "start_year": edu.start_year,
+                "end_year": edu.end_year,
+                "is_ongoing": edu.is_ongoing,
+                "star_count": starred_users.count(),
+                "is_starred": is_starred,
+                "starred_by_names": starred_by_names,
+            }
+        })
+    return JsonResponse(data, safe=False)
 
 
 @login_required(login_url="/login/")

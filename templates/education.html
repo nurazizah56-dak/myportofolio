@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block meta %}
-    <title>{{ name }} - Portfolio</title>
+    <title>{{ name }} - Education</title>
 {% endblock meta %}
 {% block content %}
 <main>
@@ -10,46 +10,297 @@
             <div class="project-header">
                 <h1>Education</h1>
                 {% if user.is_superuser %}
-                    <a href="{% url 'main:create_education' %}" class="button project-add-button">
+                    <button type="button" class="button project-add-button" popovertarget="add-education-modal">
                         <span aria-hidden="true">+</span>
                         Add Education
-                    </a>
+                    </button>
                 {% endif %}
             </div>
 
-            <div class="education-grid">
-                {% for edu in education_list %}
-                    <div class="education-card" id="education-card-{{ edu.id }}">
-                        {% if edu.logo %}
-                            <img src="{{ edu.logo }}" alt="{{ edu.institution_name }}" class="education-img">
-                        {% endif %}
-                        <h3>{{ edu.institution_name }}</h3>
-                        <p class="education-degree">{{ edu.degree }}</p>
-                        {% if edu.maps_url %}
-                            <a href="{{ edu.maps_url }}" class="education-address" target="_blank" rel="noopener noreferrer">{{ edu.location }}</a>
-                        {% else %}
-                            <p class="education-address">{{ edu.location }}</p>
-                        {% endif %}
-                        <p class="education-year">
-                            {{ edu.start_year }} - {% if edu.is_ongoing %}Present{% else %}{{ edu.end_year }}{% endif %}
-                        </p>
+            <!-- Search Form -->
+            <form id="education-search-form" class="project-search">
+                <input type="search" id="search-input" name="institution_name" value="{{ institution_name_query }}" placeholder="Search by institution name..." class="project-search__input" aria-label="Search by institution name">
+                <button type="submit" class="button">Search</button>
+            </form>
 
-                        {% include "components/education_star.html" with edu=edu %}
-
-                        <div class="education-actions">
-                            {% if user.is_superuser or is_editor %}
-                                <a href="{% url 'main:update_education' edu.id %}" class="button">Edit</a>
-                            {% endif %}
-                            {% if user.is_superuser %}
-                                {% include "components/education_delete_modal.html" with edu=edu %}
-                            {% endif %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">No education history added yet.</p>
-                {% endfor %}
+            <!-- Loading State -->
+            <div id="loading" class="empty-state hide">
+                <p>Loading education history...</p>
             </div>
+
+            <!-- Error State -->
+            <div id="error" class="empty-state hide">
+                <p>Failed to load education history. Please try again.</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty" class="empty-state hide">
+                <p>No education history added or found yet.</p>
+            </div>
+
+            <!-- Education Grid -->
+            <div id="grid" class="education-grid hide"></div>
         </div>
     </section>
 </main>
+
+{% if user.is_superuser %}
+    {% include "components/education_form_modal.html" %}
+{% endif %}
+
+<script>
+// Escape special HTML characters to prevent XSS
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+// Configuration & User State
+const BASE_EDUCATION_ENDPOINT = "{% url 'main:get_education_json' %}";
+const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+let educationAbortController;
+
+// DOM Elements
+const loadingState = document.getElementById('loading');
+const errorState = document.getElementById('error');
+const emptyState = document.getElementById('empty');
+const gridContainer = document.getElementById('grid');
+const searchForm = document.getElementById('education-search-form');
+const searchInput = document.getElementById('search-input');
+
+// Debounce Search Setup
+const SEARCH_DEBOUNCE_DELAY = 300;
+let searchDebounceTimer;
+
+// Display/Hide Page Sections
+function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showGrid = false }) {
+    loadingState.classList.toggle('hide', !showLoading);
+    errorState.classList.toggle('hide', !showError);
+    emptyState.classList.toggle('hide', !showEmpty);
+    gridContainer.classList.toggle('hide', !showGrid);
+}
+
+// Close Add Education Popover Modal
+function closeEducationModal() {
+    const modal = document.getElementById("add-education-modal");
+    if (modal && typeof modal.hidePopover === "function") {
+        modal.hidePopover();
+    }
+}
+
+// Read Cookie for CSRF Token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Build Education Card Element (XSS-Safe)
+function buildEducationCardElement(item) {
+    const education = item.fields;
+    const educationId = item.pk;
+    const divElement = document.createElement('div');
+    divElement.className = 'education-card';
+    divElement.id = `education-card-${educationId}`;
+
+    const deleteUrl = "{% url 'main:delete_education' '00000000-0000-0000-0000-000000000000' %}"
+        .replace('00000000-0000-0000-0000-000000000000', educationId);
+    const updateUrl = "{% url 'main:update_education' '00000000-0000-0000-0000-000000000000' %}"
+        .replace('00000000-0000-0000-0000-000000000000', educationId);
+    const starUrl = "{% url 'main:toggle_star_education' '00000000-0000-0000-0000-000000000000' %}"
+        .replace('00000000-0000-0000-0000-000000000000', educationId);
+
+    const deleteHtml = IS_SUPERUSER ? `
+        <form method="post" action="${deleteUrl}" style="display:inline;" onsubmit="handleDeleteEducation(event, '${deleteUrl}', '${educationId}');">
+            {% csrf_token %}
+            <button type="submit" class="button button-danger">Delete</button>
+        </form>
+    ` : '';
+
+    const editHtml = IS_SUPERUSER ? `
+        <a href="${updateUrl}" class="button">Edit</a>
+    ` : '';
+
+    const isStarredClass = education.is_starred ? " is-starred" : "";
+    const starText = education.is_starred ? "Unstar" : "Star";
+    const starTitle = education.star_count > 0 ? `Starred by ${escapeHtml(education.starred_by_names)}` : "Be the first to star";
+
+    const logoHtml = education.logo ? `<img src="${escapeHtml(education.logo)}" alt="${escapeHtml(education.institution_name)}" class="education-img">` : '';
+    
+    const locationHtml = education.maps_url 
+        ? `<a href="${escapeHtml(education.maps_url)}" class="education-address" target="_blank" rel="noopener noreferrer">${escapeHtml(education.location)}</a>`
+        : `<p class="education-address">${escapeHtml(education.location)}</p>`;
+        
+    const endYearText = education.is_ongoing ? 'Present' : education.end_year;
+
+    const completeCardHtml = `
+        ${logoHtml}
+        <h3>${escapeHtml(education.institution_name)}</h3>
+        <p class="education-degree">${escapeHtml(education.degree)}</p>
+        ${locationHtml}
+        <p class="education-year">
+            ${education.start_year} - ${escapeHtml(String(endYearText))}
+        </p>
+
+        <form method="post" action="${starUrl}" class="star-form">
+            {% csrf_token %}
+            <button type="submit" class="button button-star${isStarredClass}" title="${starTitle}">
+                <span aria-hidden="true">★</span>
+                ${starText}
+                <span class="star-count">${education.star_count}</span>
+            </button>
+        </form>
+
+        <div class="education-actions">
+            ${editHtml}
+            ${deleteHtml}
+        </div>
+    `;
+
+    divElement.innerHTML = completeCardHtml;
+    return divElement;
+}
+
+// Fetch Education Data via Fetch API
+async function fetchEducation(searchQuery = "") {
+    if (educationAbortController) educationAbortController.abort();
+    educationAbortController = new AbortController();
+
+    try {
+        displayPageSection({ showLoading: true });
+        const url = searchQuery ? `${BASE_EDUCATION_ENDPOINT}?institution_name=${encodeURIComponent(searchQuery)}` : BASE_EDUCATION_ENDPOINT;
+        const response = await fetch(url, {
+            headers: { 'Accept': 'application/json' },
+            signal: educationAbortController.signal,
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch data');
+
+        const educationData = await response.json();
+
+        if (educationData.length === 0) {
+            displayPageSection({ showEmpty: true });
+        } else {
+            gridContainer.innerHTML = '';
+            educationData.forEach(item => {
+                gridContainer.appendChild(buildEducationCardElement(item));
+            });
+            displayPageSection({ showGrid: true });
+        }
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Error loading education:', error);
+        displayPageSection({ showError: true });
+    }
+}
+
+// Debounce Search
+function searchEducation() {
+    fetchEducation(searchInput.value.trim());
+}
+
+if (searchInput) {
+    searchInput.addEventListener("input", function() {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(function() {
+            searchEducation();
+        }, SEARCH_DEBOUNCE_DELAY);
+    });
+}
+
+if (searchForm) {
+    searchForm.addEventListener("submit", function(event) {
+        event.preventDefault();
+        clearTimeout(searchDebounceTimer);
+        searchEducation();
+    });
+}
+
+// Add Education via AJAX
+const CREATE_EDUCATION_ENDPOINT = "{% url 'main:create_education_ajax' %}";
+const educationForm = document.getElementById('education-form');
+
+async function addEducation(event) {
+    event.preventDefault();
+    const submitButton = educationForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+
+    try {
+        const response = await fetch(CREATE_EDUCATION_ENDPOINT, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            body: new FormData(educationForm),
+        });
+
+        const result = await response.json().catch(() => ({}));
+
+        if (response.ok) {
+            educationForm.reset();
+            closeEducationModal();
+            showToast('Success', 'New education added successfully!', 'success');
+            fetchEducation(searchInput.value.trim());
+        } else {
+            const errorMessages = result.errors 
+                ? Object.values(result.errors).flat().map(error => error.message) 
+                : [result.message || `An error occurred (status ${response.status}).`];
+            showToast('Failed to add education', errorMessages.join(' '), 'error');
+        }
+    } catch (error) {
+        console.error('Error adding education:', error);
+        showToast('Failed to add education', 'Could not connect to the server. Please try again.', 'error');
+    } finally {
+        submitButton.disabled = false;
+    }
+}
+
+if (educationForm) {
+    educationForm.addEventListener('submit', addEducation);
+}
+
+// Delete Education via AJAX
+async function handleDeleteEducation(event, deleteUrl, educationId) {
+    event.preventDefault();
+    if (!confirm('Are you sure you want to delete this education?')) return;
+
+    try {
+        const response = await fetch(deleteUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Accept': 'application/json'
+            }
+        });
+        const result = await response.json().catch(() => ({}));
+        if (response.ok && result.success !== false) {
+            showToast('Success', result.message || 'Education deleted successfully!', 'success');
+            const cardEl = document.getElementById(`education-card-${educationId}`);
+            if (cardEl) cardEl.remove();
+            if (!gridContainer.querySelector('.education-card')) {
+                displayPageSection({ showEmpty: true });
+            }
+        } else {
+            showToast('Failed to delete', result.message || 'Failed to delete education.', 'error');
+        }
+    } catch (err) {
+        console.error('Error deleting education:', err);
+        showToast('Error', 'A network error occurred.', 'error');
+    }
+}
+
+// Initial Data Fetch
+fetchEducation(searchInput.value.trim());
+</script>
 {% endblock content %}

@@ -115,6 +115,14 @@ class SkillForm(ModelForm):
             "order": NumberInput(attrs={"placeholder": "1"}),
         }
 
+    def clean_name(self):
+        from django.utils.html import strip_tags
+        from django.core.exceptions import ValidationError
+        name = strip_tags(self.cleaned_data["name"]).strip()
+        if not name:
+            raise ValidationError("Skill name cannot be empty or contain only HTML tags.")
+        return name
+
 class AchievementForm(ModelForm):
     class Meta:
         model = Achievement

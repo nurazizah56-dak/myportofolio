@@ -10,60 +10,308 @@
             <div class="project-header">
                 <h1>Skills</h1>
                 {% if user.is_superuser %}
-                    <a href="{% url 'main:create_skill' %}" class="button project-add-button">
+                    <button type="button"
+                            class="button project-add-button"
+                            id="open-add-skill-btn"
+                            popovertarget="add-skill-modal">
                         <span aria-hidden="true">+</span>
                         Add Skill
-                    </a>
+                    </button>
                 {% endif %}
             </div>
+
+            <!-- Search -->
+            <form id="skill-search-form" class="project-search">
+                <input type="search"
+                       id="skill-search-input"
+                       name="name"
+                       value="{{ name_query }}"
+                       placeholder="Search by skill name"
+                       class="project-search__input"
+                       aria-label="Search by skill name">
+                <button type="submit" class="button">Search</button>
+            </form>
+
             <p class="skill-note">Self-assessment score (out of 10)</p>
 
-            <h3 class="skill-category">Soft Skills</h3>
-            <div class="skills-chart">
-                {% for skill in soft_skills %}
-                    <div class="skill-col" id="skill-col-{{ skill.id }}">
-                        <div class="skill-bar-vert" style="height: {{ skill.percentage }}%;">
-                            <span class="skill-score">{{ skill.score }}</span>
-                        </div>
-                        <p class="skill-name">{{ skill.name }}</p>
-                        <div class="skill-actions">
-                            {% if user.is_superuser or is_editor %}
-                                <a href="{% url 'main:update_skill' skill.id %}" class="skill-edit-btn" title="Edit">✎</a>
-                            {% endif %}
-                            {% include "components/skill_star.html" with skill=skill %}
-                            {% if user.is_superuser %}
-                                {% include "components/skill_delete_modal.html" with skill=skill %}
-                            {% endif %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">No soft skills added yet.</p>
-                {% endfor %}
+            <!-- Loading State -->
+            <div id="skills-loading" class="empty-state hide">
+                <p>Loading skills...</p>
             </div>
 
-            <h3 class="skill-category">Hard Skills</h3>
-            <div class="skills-chart">
-                {% for skill in hard_skills %}
-                    <div class="skill-col" id="skill-col-{{ skill.id }}">
-                        <div class="skill-bar-vert" style="height: {{ skill.percentage }}%;">
-                            <span class="skill-score">{{ skill.score }}</span>
-                        </div>
-                        <p class="skill-name">{{ skill.name }}</p>
-                        <div class="skill-actions">
-                            {% if user.is_superuser or is_editor %}
-                                <a href="{% url 'main:update_skill' skill.id %}" class="skill-edit-btn" title="Edit">✎</a>
-                            {% endif %}
-                            {% include "components/skill_star.html" with skill=skill %}
-                            {% if user.is_superuser %}
-                                {% include "components/skill_delete_modal.html" with skill=skill %}
-                            {% endif %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">No hard skills added yet.</p>
-                {% endfor %}
+            <!-- Error State -->
+            <div id="skills-error" class="empty-state hide">
+                <p>Failed to load skills. Please try again.</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="skills-empty" class="empty-state hide">
+                <p>No skills added yet or none match your search.</p>
+            </div>
+
+            <!-- Soft Skills -->
+            <div id="soft-skills-section" class="hide">
+                <h3 class="skill-category">Soft Skills</h3>
+                <div id="soft-skills-grid" class="skills-chart"></div>
+            </div>
+
+            <!-- Hard Skills -->
+            <div id="hard-skills-section" class="hide">
+                <h3 class="skill-category">Hard Skills</h3>
+                <div id="hard-skills-grid" class="skills-chart"></div>
             </div>
         </div>
     </section>
 </main>
+
+{% if user.is_superuser %}
+    {% include "components/skill_form_modal.html" %}
+{% endif %}
+
 {% endblock content %}
+
+{% block extra_js %}
+<script>
+    // ─── Configuration ────────────────────────────────────────────────────────
+    const BASE_SKILLS_ENDPOINT = "{% url 'main:get_skill_json' %}";
+    {% if user.is_superuser %}
+    const CREATE_SKILL_ENDPOINT = "{% url 'main:create_skill_ajax' %}";
+    {% endif %}
+    const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+    const IS_EDITOR = "{{ is_editor|yesno:'true,false' }}" === "true";
+    const SEARCH_DEBOUNCE_DELAY = 300;
+
+    // ─── DOM References ───────────────────────────────────────────────────────
+    const loadingState  = document.getElementById('skills-loading');
+    const errorState    = document.getElementById('skills-error');
+    const emptyState    = document.getElementById('skills-empty');
+    const softSection   = document.getElementById('soft-skills-section');
+    const hardSection   = document.getElementById('hard-skills-section');
+    const softGrid      = document.getElementById('soft-skills-grid');
+    const hardGrid      = document.getElementById('hard-skills-grid');
+    const searchForm    = document.getElementById('skill-search-form');
+    const searchInput   = document.getElementById('skill-search-input');
+
+    let skillsAbortController;
+    let searchDebounceTimer;
+
+    // ─── XSS Protection ──────────────────────────────────────────────────────
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    // ─── CSRF Cookie Reader ───────────────────────────────────────────────────
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // ─── Page Section Manager ─────────────────────────────────────────────────
+    function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showSoft = false, showHard = false }) {
+        loadingState.classList.toggle('hide', !showLoading);
+        errorState.classList.toggle('hide', !showError);
+        emptyState.classList.toggle('hide', !showEmpty);
+        softSection.classList.toggle('hide', !showSoft);
+        hardSection.classList.toggle('hide', !showHard);
+    }
+
+    // ─── Build Skill Bar Element ──────────────────────────────────────────────
+    function buildSkillElement(item) {
+        const skill = item.fields;
+        const skillId = item.pk;
+
+        const starUrl = "{% url 'main:toggle_star_skill' '00000000-0000-0000-0000-000000000000' %}"
+            .replace('00000000-0000-0000-0000-000000000000', skillId);
+        const editUrl = "{% url 'main:update_skill' '00000000-0000-0000-0000-000000000000' %}"
+            .replace('00000000-0000-0000-0000-000000000000', skillId);
+        const deleteUrl = "{% url 'main:delete_skill' '00000000-0000-0000-0000-000000000000' %}"
+            .replace('00000000-0000-0000-0000-000000000000', skillId);
+
+        const isStarredClass = skill.is_starred ? ' is-starred' : '';
+        const starTitle = skill.star_count > 0
+            ? `Starred by ${escapeHtml(skill.starred_by_names)}`
+            : 'Be the first to star';
+
+        const editHtml = (IS_SUPERUSER || IS_EDITOR)
+            ? `<a href="${editUrl}" class="skill-edit-btn" title="Edit">✎</a>`
+            : '';
+
+        const starHtml = `
+            <form method="post" action="${starUrl}" class="star-form">
+                {% csrf_token %}
+                <button type="submit"
+                        class="button-star-icon${isStarredClass}"
+                        title="${escapeHtml(starTitle)}">
+                    ★ ${skill.star_count}
+                </button>
+            </form>`;
+
+        const deleteHtml = IS_SUPERUSER
+            ? `<button type="button"
+                       class="skill-delete-btn"
+                       title="Delete"
+                       onclick="handleDeleteSkill('${skillId}', '${escapeHtml(skill.name)}', '${deleteUrl}')">🗑</button>`
+            : '';
+
+        const col = document.createElement('div');
+        col.className = 'skill-col';
+        col.id = `skill-col-${skillId}`;
+        col.innerHTML = `
+            <div class="skill-bar-vert" style="height: ${escapeHtml(String(skill.percentage))}%;">
+                <span class="skill-score">${escapeHtml(String(skill.score))}</span>
+            </div>
+            <p class="skill-name">${escapeHtml(skill.name)}</p>
+            <div class="skill-actions">
+                ${editHtml}
+                ${starHtml}
+                ${deleteHtml}
+            </div>`;
+        return col;
+    }
+
+    // ─── Delete Handler ───────────────────────────────────────────────────────
+    async function handleDeleteSkill(skillId, skillName, deleteUrl) {
+        if (!confirm(`Delete skill "${skillName}"?`)) return;
+        try {
+            const response = await fetch(deleteUrl, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('Deleted', 'Skill removed successfully.', 'success');
+                fetchSkills(searchInput.value.trim());
+            }
+        } catch (err) {
+            showToast('Error', 'Failed to delete skill.', 'error');
+        }
+    }
+
+    // ─── Fetch Skills ─────────────────────────────────────────────────────────
+    async function fetchSkills(searchQuery = '') {
+        if (skillsAbortController) skillsAbortController.abort();
+        skillsAbortController = new AbortController();
+
+        try {
+            displayPageSection({ showLoading: true });
+
+            const url = searchQuery
+                ? `${BASE_SKILLS_ENDPOINT}?name=${encodeURIComponent(searchQuery)}`
+                : BASE_SKILLS_ENDPOINT;
+
+            const response = await fetch(url, {
+                headers: { 'Accept': 'application/json' },
+                signal: skillsAbortController.signal,
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch');
+
+            const skillData = await response.json();
+
+            const softSkills = skillData.filter(s => s.fields.category === 'soft');
+            const hardSkills = skillData.filter(s => s.fields.category === 'hard');
+
+            if (skillData.length === 0) {
+                displayPageSection({ showEmpty: true });
+                return;
+            }
+
+            softGrid.innerHTML = '';
+            softSkills.forEach(item => softGrid.appendChild(buildSkillElement(item)));
+
+            hardGrid.innerHTML = '';
+            hardSkills.forEach(item => hardGrid.appendChild(buildSkillElement(item)));
+
+            displayPageSection({
+                showSoft: softSkills.length > 0,
+                showHard: hardSkills.length > 0,
+                showEmpty: softSkills.length === 0 && hardSkills.length === 0,
+            });
+
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error('Error loading skills:', error);
+            displayPageSection({ showError: true });
+        }
+    }
+
+    // ─── Search Handlers ──────────────────────────────────────────────────────
+    function searchSkills() {
+        fetchSkills(searchInput.value.trim());
+    }
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(searchSkills, SEARCH_DEBOUNCE_DELAY);
+    });
+
+    searchForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearTimeout(searchDebounceTimer);
+        searchSkills();
+    });
+
+    // ─── Modal + AJAX Add Skill ───────────────────────────────────────────────
+    const skillForm = document.getElementById('skill-form');
+
+    function closeSkillModal() {
+        const modal = document.getElementById('add-skill-modal');
+        if (modal) modal.hidePopover();
+    }
+
+    async function addSkill(event) {
+        event.preventDefault();
+
+        const submitButton = skillForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+
+        try {
+            const response = await fetch(CREATE_SKILL_ENDPOINT, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                body: new FormData(skillForm),
+            });
+            const result = await response.json().catch(() => ({}));
+
+            if (response.ok) {
+                skillForm.reset();
+                closeSkillModal();
+                showToast('Success', 'New skill added successfully!', 'success');
+                fetchSkills(searchInput.value.trim());
+            } else {
+                const errorMessages = result.errors
+                    ? Object.values(result.errors).flat().map(e => e.message)
+                    : [result.message || `An error occurred (status ${response.status}).`];
+                showToast('Failed to add skill', errorMessages.join(' '), 'error');
+            }
+        } catch (error) {
+            console.error('Error adding skill:', error);
+            showToast('Failed to add skill', 'Could not connect to server. Please try again.', 'error');
+        } finally {
+            submitButton.disabled = false;
+        }
+    }
+
+    if (skillForm) {
+        skillForm.addEventListener('submit', addSkill);
+    }
+
+    // ─── Initial Load ─────────────────────────────────────────────────────────
+    fetchSkills(searchInput.value.trim());
+</script>
+{% endblock extra_js %}

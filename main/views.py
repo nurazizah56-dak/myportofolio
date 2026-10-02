@@ -292,28 +292,60 @@ def toggle_star_education(request, education_id):
 
 
 def show_skills(request):
-    json_response = get_skill_json(request)
-    skills = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    skills = [s.object for s in skills]
-    soft_skills = [s for s in skills if s.category == "soft"]
-    hard_skills = [s for s in skills if s.category == "hard"]
+    name_query = request.GET.get("name", "").strip()
     is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
     context = {
         "name": "Nur Azizah",
-        "soft_skills": soft_skills,
-        "hard_skills": hard_skills,
+        "name_query": name_query,
         "is_editor": is_editor,
+        "form": SkillForm(),
     }
     return render(request, "skills.html", context)
 
 
 def get_skill_json(request):
-    skills = Skill.objects.all()
-    skills_json = serializers.serialize("json", skills, use_natural_foreign_keys=True)
-    return HttpResponse(skills_json, content_type="application/json")
+    name_query = request.GET.get("name", "").strip()
+    skills = Skill.objects.prefetch_related('starred_by').all()
+
+    if name_query:
+        skills = skills.filter(name__icontains=name_query)
+
+    data = []
+    for skill in skills:
+        starred_users = skill.starred_by.all()
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        starred_by_names = ", ".join([u.username for u in starred_users])
+        data.append({
+            "pk": str(skill.id),
+            "fields": {
+                "category": skill.category,
+                "name": skill.name,
+                "score": float(skill.score),
+                "percentage": skill.percentage,
+                "order": skill.order,
+                "star_count": starred_users.count(),
+                "is_starred": is_starred,
+                "starred_by_names": starred_by_names,
+            }
+        })
+    return JsonResponse(data, safe=False)
+
+
+@require_POST
+def create_skill_ajax(request):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Only the portfolio owner can add a skill."},
+            status=403,
+        )
+    form = SkillForm(request.POST)
+    if form.is_valid():
+        skill = form.save()
+        return JsonResponse(
+            {"message": "Skill added successfully.", "pk": str(skill.id)},
+            status=201,
+        )
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
 
 
 @login_required(login_url="/login/")

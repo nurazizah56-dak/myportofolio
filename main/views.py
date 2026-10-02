@@ -409,39 +409,61 @@ def toggle_star_skill(request, skill_id):
 
 
 def show_achievements(request):
-    json_response = get_achievement_json(request)
-    achievements = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    achievements = [a.object for a in achievements]
-
-    academic_achievements = sorted(
-        [a for a in achievements if a.category == "academic"],
-        key=lambda a: a.year, reverse=True
-    )
-    non_academic_achievements = sorted(
-        [a for a in achievements if a.category == "non_academic"],
-        key=lambda a: a.year, reverse=True
-    )
-    carousel_items = [a for a in achievements if a.image]
-
+    title_query = request.GET.get("title", "").strip()
     is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
-
     context = {
         "name": "Nur Azizah",
-        "academic_achievements": academic_achievements,
-        "non_academic_achievements": non_academic_achievements,
-        "carousel_items": carousel_items,
+        "title_query": title_query,
         "is_editor": is_editor,
+        "form": AchievementForm(),
     }
     return render(request, "achievements.html", context)
 
 
 def get_achievement_json(request):
-    achievements = Achievement.objects.all()
-    achievements_json = serializers.serialize("json", achievements, use_natural_foreign_keys=True)
-    return HttpResponse(achievements_json, content_type="application/json")
+    title_query = request.GET.get("title", "").strip()
+    achievements = Achievement.objects.prefetch_related('starred_by').all()
+
+    if title_query:
+        achievements = achievements.filter(title__icontains=title_query)
+
+    data = []
+    for achievement in achievements:
+        starred_users = achievement.starred_by.all()
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        starred_by_names = ", ".join([u.username for u in starred_users])
+        data.append({
+            "pk": str(achievement.id),
+            "fields": {
+                "title": achievement.title,
+                "description": achievement.description,
+                "year": achievement.year,
+                "category": achievement.category,
+                "icon": achievement.icon,
+                "image": achievement.image or "",
+                "star_count": starred_users.count(),
+                "is_starred": is_starred,
+                "starred_by_names": starred_by_names,
+            }
+        })
+    return JsonResponse(data, safe=False)
+
+
+@require_POST
+def create_achievement_ajax(request):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Only the portfolio owner can add an achievement."},
+            status=403,
+        )
+    form = AchievementForm(request.POST)
+    if form.is_valid():
+        achievement = form.save()
+        return JsonResponse(
+            {"message": "Achievement added successfully.", "pk": str(achievement.id)},
+            status=201,
+        )
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
 
 
 @login_required(login_url="/login/")
@@ -533,6 +555,7 @@ def get_certification_json(request):
     certifications = Certification.objects.all()
     certifications_json = serializers.serialize("json", certifications, use_natural_foreign_keys=True)
     return HttpResponse(certifications_json, content_type="application/json")
+
 
 
 @login_required(login_url="/login/")

@@ -151,6 +151,20 @@ class AchievementForm(ModelForm):
             "image": TextInput(attrs={"placeholder": "/static/img/achievement-example.jpg"}),
         }
 
+    def clean_title(self):
+        from django.utils.html import strip_tags
+        from django.core.exceptions import ValidationError
+        title = strip_tags(self.cleaned_data["title"]).strip()
+        if not title:
+            raise ValidationError("Achievement title cannot be empty or contain only HTML tags.")
+        return title
+
+    def clean_description(self):
+        from django.utils.html import strip_tags
+        return strip_tags(self.cleaned_data["description"]).strip()
+
+
+
 class CertificationForm(ModelForm):
     class Meta:
         model = Certification

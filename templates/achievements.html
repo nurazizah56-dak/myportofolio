@@ -11,98 +11,351 @@
             <div class="project-header">
                 <h1>Achievements</h1>
                 {% if user.is_superuser %}
-                    <a href="{% url 'main:create_achievement' %}" class="button project-add-button">
+                    <button type="button"
+                            class="button project-add-button"
+                            id="open-add-achievement-btn"
+                            popovertarget="add-achievement-modal">
                         <span aria-hidden="true">+</span>
                         Add Achievement
-                    </a>
+                    </button>
                 {% endif %}
             </div>
 
-            <h3 class="achievement-category">A. Academic</h3>
-            <div class="achievements-list">
-                {% for item in academic_achievements %}
-                    <div class="achievement-item" id="achievement-item-{{ item.id }}">
-                        <span class="achievement-icon">{{ item.icon }}</span>
-                        <div class="achievement-content">
-                            <p class="achievement-year">{{ item.year }}</p>
-                            <h4>{{ item.title }}</h4>
-                            <p>{{ item.description }}</p>
-                        </div>
-                        <div class="achievement-actions">
-                            {% include "components/achievement_star.html" with item=item %}
-                            {% if user.is_superuser or is_editor %}
-                                <a href="{% url 'main:update_achievement' item.id %}" class="button">Edit</a>
-                            {% endif %}
-                            {% if user.is_superuser %}
-                                {% include "components/achievement_delete_modal.html" with item=item %}
-                            {% endif %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">No academic achievements added yet.</p>
-                {% endfor %}
+            <!-- Search -->
+            <form id="achievement-search-form" class="project-search">
+                <input type="search"
+                       id="achievement-search-input"
+                       name="title"
+                       value="{{ title_query }}"
+                       placeholder="Search by achievement title"
+                       class="project-search__input"
+                       aria-label="Search by achievement title">
+                <button type="submit" class="button">Search</button>
+            </form>
+
+            <!-- Loading State -->
+            <div id="achievements-loading" class="empty-state hide">
+                <p>Loading achievements...</p>
             </div>
 
-            <h3 class="achievement-category">B. Non Academic</h3>
-            <div class="achievements-list">
-                {% for item in non_academic_achievements %}
-                    <div class="achievement-item" id="achievement-item-{{ item.id }}">
-                        <span class="achievement-icon">{{ item.icon }}</span>
-                        <div class="achievement-content">
-                            <p class="achievement-year">{{ item.year }}</p>
-                            <h4>{{ item.title }}</h4>
-                            <p>{{ item.description }}</p>
-                        </div>
-                        <div class="achievement-actions">
-                            {% include "components/achievement_star.html" with item=item %}
-                            {% if user.is_superuser or is_editor %}
-                                <a href="{% url 'main:update_achievement' item.id %}" class="button">Edit</a>
-                            {% endif %}
-                            {% if user.is_superuser %}
-                                {% include "components/achievement_delete_modal.html" with item=item %}
-                            {% endif %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">No non-academic achievements added yet.</p>
-                {% endfor %}
+            <!-- Error State -->
+            <div id="achievements-error" class="empty-state hide">
+                <p>Failed to load achievements. Please try again.</p>
             </div>
 
-            {% if carousel_items %}
-            <h3 class="carousel-title">Certificates & Documentation</h3>
-            <div class="carousel-wrapper">
-                <button type="button" class="carousel-btn prev" id="carouselPrev">❮</button>
-                <div class="carousel-track" id="certCarousel">
-                    {% for item in carousel_items %}
-                        <div class="carousel-card">
-                            <img src="{{ item.image }}" alt="{{ item.title }}">
-                            <p>{{ item.title }}</p>
-                        </div>
-                    {% endfor %}
+            <!-- Empty State -->
+            <div id="achievements-empty" class="empty-state hide">
+                <p>No achievements added yet or none match your search.</p>
+            </div>
+
+            <!-- Academic Achievements -->
+            <div id="academic-section" class="hide">
+                <h3 class="achievement-category">A. Academic</h3>
+                <div id="academic-list" class="achievements-list"></div>
+            </div>
+
+            <!-- Non Academic Achievements -->
+            <div id="non-academic-section" class="hide">
+                <h3 class="achievement-category">B. Non Academic</h3>
+                <div id="non-academic-list" class="achievements-list"></div>
+            </div>
+
+            <!-- Carousel -->
+            <div id="carousel-section" class="hide">
+                <h3 class="carousel-title">Certificates & Documentation</h3>
+                <div class="carousel-wrapper">
+                    <button type="button" class="carousel-btn prev" id="carouselPrev">❮</button>
+                    <div class="carousel-track" id="certCarousel"></div>
+                    <button type="button" class="carousel-btn next" id="carouselNext">❯</button>
                 </div>
-                <button type="button" class="carousel-btn next" id="carouselNext">❯</button>
             </div>
-            {% endif %}
+
         </div>
     </section>
 </main>
+
+{% if user.is_superuser %}
+    {% include "components/achievement_form_modal.html" %}
+{% endif %}
+
 {% endblock content %}
 
 {% block extra_js %}
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const track = document.getElementById("certCarousel");
-        const prevBtn = document.getElementById("carouselPrev");
-        const nextBtn = document.getElementById("carouselNext");
+    // ─── Configuration ────────────────────────────────────────────────────────
+    const BASE_ACHIEVEMENTS_ENDPOINT = "{% url 'main:get_achievement_json' %}";
+    {% if user.is_superuser %}
+    const CREATE_ACHIEVEMENT_ENDPOINT = "{% url 'main:create_achievement_ajax' %}";
+    {% endif %}
+    const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+    const IS_EDITOR = "{{ is_editor|yesno:'true,false' }}" === "true";
+    const SEARCH_DEBOUNCE_DELAY = 300;
 
-        if (track && prevBtn && nextBtn) {
-            prevBtn.addEventListener("click", () => {
-                track.scrollBy({ left: -220, behavior: "smooth" });
-            });
-            nextBtn.addEventListener("click", () => {
-                track.scrollBy({ left: 220, behavior: "smooth" });
-            });
+    // ─── DOM References ───────────────────────────────────────────────────────
+    const loadingState    = document.getElementById('achievements-loading');
+    const errorState      = document.getElementById('achievements-error');
+    const emptyState      = document.getElementById('achievements-empty');
+    const academicSection = document.getElementById('academic-section');
+    const nonAcademicSection = document.getElementById('non-academic-section');
+    const academicList    = document.getElementById('academic-list');
+    const nonAcademicList = document.getElementById('non-academic-list');
+    const carouselSection = document.getElementById('carousel-section');
+    const certCarousel    = document.getElementById('certCarousel');
+    const searchForm      = document.getElementById('achievement-search-form');
+    const searchInput     = document.getElementById('achievement-search-input');
+    const prevBtn = document.getElementById("carouselPrev");
+    const nextBtn = document.getElementById("carouselNext");
+
+    let achievementsAbortController;
+    let searchDebounceTimer;
+
+    // Carousel events
+    if (prevBtn && nextBtn && certCarousel) {
+        prevBtn.addEventListener("click", () => {
+            certCarousel.scrollBy({ left: -220, behavior: "smooth" });
+        });
+        nextBtn.addEventListener("click", () => {
+            certCarousel.scrollBy({ left: 220, behavior: "smooth" });
+        });
+    }
+
+    // ─── XSS Protection ──────────────────────────────────────────────────────
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    // ─── CSRF Cookie Reader ───────────────────────────────────────────────────
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
         }
+        return cookieValue;
+    }
+
+    // ─── Page Section Manager ─────────────────────────────────────────────────
+    function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showAcademic = false, showNonAcademic = false, showCarousel = false }) {
+        loadingState.classList.toggle('hide', !showLoading);
+        errorState.classList.toggle('hide', !showError);
+        emptyState.classList.toggle('hide', !showEmpty);
+        academicSection.classList.toggle('hide', !showAcademic);
+        nonAcademicSection.classList.toggle('hide', !showNonAcademic);
+        carouselSection.classList.toggle('hide', !showCarousel);
+    }
+
+    // ─── Build Achievement Element ────────────────────────────────────────────
+    function buildAchievementElement(item) {
+        const achievement = item.fields;
+        const achievementId = item.pk;
+
+        const starUrl = "{% url 'main:toggle_star_achievement' '00000000-0000-0000-0000-000000000000' %}"
+            .replace('00000000-0000-0000-0000-000000000000', achievementId);
+        const editUrl = "{% url 'main:update_achievement' '00000000-0000-0000-0000-000000000000' %}"
+            .replace('00000000-0000-0000-0000-000000000000', achievementId);
+        const deleteUrl = "{% url 'main:delete_achievement' '00000000-0000-0000-0000-000000000000' %}"
+            .replace('00000000-0000-0000-0000-000000000000', achievementId);
+
+        const isStarredClass = achievement.is_starred ? ' is-starred' : '';
+        const starTitle = achievement.star_count > 0
+            ? `Starred by ${escapeHtml(achievement.starred_by_names)}`
+            : 'Be the first to star';
+
+        const editHtml = (IS_SUPERUSER || IS_EDITOR)
+            ? `<a href="${editUrl}" class="button" title="Edit">Edit</a>`
+            : '';
+
+        const starHtml = `
+            <form method="post" action="${starUrl}" class="star-form">
+                {% csrf_token %}
+                <button type="submit"
+                        class="button button-star${isStarredClass}"
+                        title="${escapeHtml(starTitle)}">
+                    <span aria-hidden="true">★</span>
+                    ${achievement.is_starred ? 'Unstar' : 'Star'}
+                    <span class="star-count">${achievement.star_count}</span>
+                </button>
+            </form>`;
+
+        const deleteHtml = IS_SUPERUSER
+            ? `<button type="button"
+                       class="button button-danger"
+                       title="Delete"
+                       onclick="handleDeleteAchievement('${achievementId}', '${escapeHtml(achievement.title.replace(/'/g, "\\'"))}', '${deleteUrl}')">Delete</button>`
+            : '';
+
+        const div = document.createElement('div');
+        div.className = 'achievement-item';
+        div.id = `achievement-item-${achievementId}`;
+        div.innerHTML = `
+            <span class="achievement-icon">${escapeHtml(achievement.icon)}</span>
+            <div class="achievement-content">
+                <p class="achievement-year">${escapeHtml(String(achievement.year))}</p>
+                <h4>${escapeHtml(achievement.title)}</h4>
+                <p>${escapeHtml(achievement.description)}</p>
+            </div>
+            <div class="achievement-actions">
+                ${starHtml}
+                ${editHtml}
+                ${deleteHtml}
+            </div>`;
+        return div;
+    }
+
+    // ─── Delete Handler ───────────────────────────────────────────────────────
+    async function handleDeleteAchievement(achievementId, achievementTitle, deleteUrl) {
+        if (!confirm(`Delete achievement "${achievementTitle}"?`)) return;
+        try {
+            const response = await fetch(deleteUrl, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('Deleted', 'Achievement removed successfully.', 'success');
+                fetchAchievements(searchInput.value.trim());
+            } else {
+                 showToast('Error', data.message || 'Failed to delete achievement.', 'error');
+            }
+        } catch (err) {
+            showToast('Error', 'Failed to delete achievement.', 'error');
+        }
+    }
+
+    // ─── Fetch Achievements ───────────────────────────────────────────────────
+    async function fetchAchievements(searchQuery = '') {
+        if (achievementsAbortController) achievementsAbortController.abort();
+        achievementsAbortController = new AbortController();
+
+        try {
+            displayPageSection({ showLoading: true });
+
+            const url = searchQuery
+                ? `${BASE_ACHIEVEMENTS_ENDPOINT}?title=${encodeURIComponent(searchQuery)}`
+                : BASE_ACHIEVEMENTS_ENDPOINT;
+
+            const response = await fetch(url, {
+                headers: { 'Accept': 'application/json' },
+                signal: achievementsAbortController.signal,
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch');
+
+            const data = await response.json();
+
+            const academicData = data.filter(a => a.fields.category === 'academic').sort((a,b) => b.fields.year - a.fields.year);
+            const nonAcademicData = data.filter(a => a.fields.category === 'non_academic').sort((a,b) => b.fields.year - a.fields.year);
+            const carouselData = data.filter(a => a.fields.image);
+
+            if (data.length === 0) {
+                displayPageSection({ showEmpty: true });
+                return;
+            }
+
+            academicList.innerHTML = '';
+            academicData.forEach(item => academicList.appendChild(buildAchievementElement(item)));
+
+            nonAcademicList.innerHTML = '';
+            nonAcademicData.forEach(item => nonAcademicList.appendChild(buildAchievementElement(item)));
+
+            certCarousel.innerHTML = '';
+            carouselData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'carousel-card';
+                card.innerHTML = `
+                    <img src="${escapeHtml(item.fields.image)}" alt="${escapeHtml(item.fields.title)}">
+                    <p>${escapeHtml(item.fields.title)}</p>
+                `;
+                certCarousel.appendChild(card);
+            });
+
+            displayPageSection({
+                showAcademic: academicData.length > 0,
+                showNonAcademic: nonAcademicData.length > 0,
+                showCarousel: carouselData.length > 0,
+                showEmpty: data.length === 0,
+            });
+
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error('Error loading achievements:', error);
+            displayPageSection({ showError: true });
+        }
+    }
+
+    // ─── Search Handlers ──────────────────────────────────────────────────────
+    function searchAchievements() {
+        fetchAchievements(searchInput.value.trim());
+    }
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(searchAchievements, SEARCH_DEBOUNCE_DELAY);
     });
+
+    searchForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearTimeout(searchDebounceTimer);
+        searchAchievements();
+    });
+
+    // ─── Modal + AJAX Add Achievement ─────────────────────────────────────────
+    const achievementForm = document.getElementById('achievement-form');
+
+    function closeAchievementModal() {
+        const modal = document.getElementById('add-achievement-modal');
+        if (modal) modal.hidePopover();
+    }
+
+    async function addAchievement(event) {
+        event.preventDefault();
+
+        const submitButton = achievementForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+
+        try {
+            const response = await fetch(CREATE_ACHIEVEMENT_ENDPOINT, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                body: new FormData(achievementForm),
+            });
+            const result = await response.json().catch(() => ({}));
+
+            if (response.ok) {
+                achievementForm.reset();
+                closeAchievementModal();
+                showToast('Success', 'New achievement added successfully!', 'success');
+                fetchAchievements(searchInput.value.trim());
+            } else {
+                const errorMessages = result.errors
+                    ? Object.values(result.errors).flat().map(e => e.message)
+                    : [result.message || `An error occurred (status ${response.status}).`];
+                showToast('Failed to add achievement', errorMessages.join(' '), 'error');
+            }
+        } catch (error) {
+            console.error('Error adding achievement:', error);
+            showToast('Failed to add achievement', 'Could not connect to server. Please try again.', 'error');
+        } finally {
+            submitButton.disabled = false;
+        }
+    }
+
+    if (achievementForm) {
+        achievementForm.addEventListener('submit', addAchievement);
+    }
+
+    // ─── Initial Load ─────────────────────────────────────────────────────────
+    fetchAchievements(searchInput.value.trim());
 </script>
 {% endblock extra_js %}

@@ -534,27 +534,62 @@ def toggle_star_achievement(request, achievement_id):
 
 
 def show_certifications(request):
-    json_response = get_certification_json(request)
-    certifications = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    certification_list = sorted([c.object for c in certifications], key=lambda c: c.title)
-
+    title_query = request.GET.get("title", "").strip()
     is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
 
     context = {
         "name": "Nur Azizah",
-        "certification_list": certification_list,
+        "title_query": title_query,
         "is_editor": is_editor,
+        "form": CertificationForm(),
     }
     return render(request, "certifications.html", context)
 
 
 def get_certification_json(request):
-    certifications = Certification.objects.all()
-    certifications_json = serializers.serialize("json", certifications, use_natural_foreign_keys=True)
-    return HttpResponse(certifications_json, content_type="application/json")
+    title_query = request.GET.get("title", "").strip()
+    certifications = Certification.objects.prefetch_related('starred_by').all()
+
+    if title_query:
+        certifications = certifications.filter(title__icontains=title_query)
+
+    data = []
+    for cert in certifications:
+        starred_users = cert.starred_by.all()
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        starred_by_names = ", ".join([u.username for u in starred_users])
+        data.append({
+            "pk": str(cert.id),
+            "fields": {
+                "title": cert.title,
+                "issuer": cert.issuer,
+                "date_range": cert.date_range,
+                "description": cert.description,
+                "icon": cert.icon,
+                "image": cert.image or "",
+                "star_count": starred_users.count(),
+                "is_starred": is_starred,
+                "starred_by_names": starred_by_names,
+            }
+        })
+    return JsonResponse(data, safe=False)
+
+
+@require_POST
+def create_certification_ajax(request):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Only the portfolio owner can add a certification."},
+            status=403,
+        )
+    form = CertificationForm(request.POST)
+    if form.is_valid():
+        cert = form.save()
+        return JsonResponse(
+            {"message": "Certification added successfully.", "pk": str(cert.id)},
+            status=201,
+        )
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
 
 
 

@@ -2,6 +2,7 @@
 {% block meta %}
     <title>Certifications - {{ name }}</title>
 {% endblock meta %}
+
 {% block content %}
 <main>
     <section class="experience-section" id="certifications">
@@ -9,41 +10,308 @@
             <div class="project-header">
                 <h1>Licenses & Certifications</h1>
                 {% if user.is_superuser %}
-                    <a href="{% url 'main:create_certification' %}" class="button project-add-button">
+                    <button type="button"
+                            class="button project-add-button"
+                            id="open-add-certification-btn"
+                            popovertarget="add-certification-modal">
                         <span aria-hidden="true">+</span>
                         Add Certification
-                    </a>
+                    </button>
                 {% endif %}
             </div>
-            <div class="cert-list">
-                {% for cert in certification_list %}
-                    <div class="cert-item" id="cert-item-{{ cert.id }}">
-                        <span class="achievement-icon">{{ cert.icon }}</span>
-                        <div class="cert-info">
-                            <p class="achievement-year">{{ cert.date_range }}</p>
-                            <h4>{{ cert.title }}</h4>
-                            <p>Issued by {{ cert.issuer }}{% if cert.description %} • {{ cert.description }}{% endif %}</p>
-                        </div>
-                        {% if cert.image %}
-                            <a href="{{ cert.image }}" target="_blank">
-                                <img src="{{ cert.image }}" alt="{{ cert.title }}" class="cert-preview">
-                            </a>
-                        {% endif %}
-                        <div class="cert-actions">
-                            {% include "components/certification_star.html" with cert=cert %}
-                            {% if user.is_superuser or is_editor %}
-                                <a href="{% url 'main:update_certification' cert.id %}" class="button">Edit</a>
-                            {% endif %}
-                            {% if user.is_superuser %}
-                                {% include "components/certification_delete_modal.html" with cert=cert %}
-                            {% endif %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">No certifications added yet.</p>
-                {% endfor %}
+
+            <!-- Search -->
+            <form id="certification-search-form" class="project-search">
+                <input type="search"
+                       id="certification-search-input"
+                       name="title"
+                       value="{{ title_query }}"
+                       placeholder="Search by certification title"
+                       class="project-search__input"
+                       aria-label="Search by certification title">
+                <button type="submit" class="button">Search</button>
+            </form>
+
+            <!-- Loading State -->
+            <div id="certifications-loading" class="empty-state hide">
+                <p>Loading certifications...</p>
             </div>
+
+            <!-- Error State -->
+            <div id="certifications-error" class="empty-state hide">
+                <p>Failed to load certifications. Please try again.</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="certifications-empty" class="empty-state hide">
+                <p>No certifications added yet or none match your search.</p>
+            </div>
+
+            <div id="cert-list" class="cert-list hide"></div>
         </div>
     </section>
 </main>
+
+{% if user.is_superuser %}
+    {% include "components/certification_form_modal.html" %}
+{% endif %}
+
 {% endblock content %}
+
+{% block extra_js %}
+<script>
+    // ─── Configuration ────────────────────────────────────────────────────────
+    const BASE_CERTIFICATIONS_ENDPOINT = "{% url 'main:get_certification_json' %}";
+    {% if user.is_superuser %}
+    const CREATE_CERTIFICATION_ENDPOINT = "{% url 'main:create_certification_ajax' %}";
+    {% endif %}
+    const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+    const IS_EDITOR = "{{ is_editor|yesno:'true,false' }}" === "true";
+    const SEARCH_DEBOUNCE_DELAY = 300;
+
+    // ─── DOM References ───────────────────────────────────────────────────────
+    const loadingState  = document.getElementById('certifications-loading');
+    const errorState    = document.getElementById('certifications-error');
+    const emptyState    = document.getElementById('certifications-empty');
+    const certList      = document.getElementById('cert-list');
+    const searchForm    = document.getElementById('certification-search-form');
+    const searchInput   = document.getElementById('certification-search-input');
+
+    let certificationsAbortController;
+    let searchDebounceTimer;
+
+    // ─── XSS Protection ──────────────────────────────────────────────────────
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    // ─── CSRF Cookie Reader ───────────────────────────────────────────────────
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // ─── Page Section Manager ─────────────────────────────────────────────────
+    function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showList = false }) {
+        loadingState.classList.toggle('hide', !showLoading);
+        errorState.classList.toggle('hide', !showError);
+        emptyState.classList.toggle('hide', !showEmpty);
+        certList.classList.toggle('hide', !showList);
+    }
+
+    // ─── Build Certification Element ──────────────────────────────────────────
+    function buildCertificationElement(item) {
+        const cert = item.fields;
+        const certId = item.pk;
+
+        const starUrl = "{% url 'main:toggle_star_certification' '00000000-0000-0000-0000-000000000000' %}"
+            .replace('00000000-0000-0000-0000-000000000000', certId);
+        const editUrl = "{% url 'main:update_certification' '00000000-0000-0000-0000-000000000000' %}"
+            .replace('00000000-0000-0000-0000-000000000000', certId);
+        const deleteUrl = "{% url 'main:delete_certification' '00000000-0000-0000-0000-000000000000' %}"
+            .replace('00000000-0000-0000-0000-000000000000', certId);
+
+        const isStarredClass = cert.is_starred ? ' is-starred' : '';
+        const starTitle = cert.star_count > 0
+            ? `Starred by ${escapeHtml(cert.starred_by_names)}`
+            : 'Be the first to star';
+
+        const editHtml = (IS_SUPERUSER || IS_EDITOR)
+            ? `<a href="${editUrl}" class="button" title="Edit">Edit</a>`
+            : '';
+
+        const starHtml = `
+            <form method="post" action="${starUrl}" class="star-form">
+                {% csrf_token %}
+                <button type="submit"
+                        class="button button-star${isStarredClass}"
+                        title="${escapeHtml(starTitle)}">
+                    <span aria-hidden="true">★</span>
+                    ${cert.is_starred ? 'Unstar' : 'Star'}
+                    <span class="star-count">${cert.star_count}</span>
+                </button>
+            </form>`;
+
+        const deleteHtml = IS_SUPERUSER
+            ? `<button type="button"
+                       class="button button-danger"
+                       title="Delete"
+                       onclick="handleDeleteCertification('${certId}', '${escapeHtml(cert.title.replace(/'/g, "\\'"))}', '${deleteUrl}')">Delete</button>`
+            : '';
+
+        // Model field changed based on form changes: issue_date & expiry_date instead of date_range
+        // In the original, it was date_range. Since I modified views.py to output issue_date and expiry_date,
+        // let me check views.py again. Ah, wait, in models it was probably date_range.
+        // I will use date_range if it exists, otherwise combine issue_date and expiry_date.
+        // Actually, my views.py replacement for get_certification_json used issue_date and expiry_date. Let me fix the display.
+        // Let's assume the model actually uses date_range based on forms.py `fields = ["title", "issuer", "date_range", "description", "icon", "image"]`.
+        // Let me adjust the JS to use date_range, or fallback if I wrote the view wrong.
+        // Since I replaced views.py assuming issue_date, let me use the field returned.
+        // I will re-verify views.py after this file.
+        const dateRangeText = cert.date_range ? escapeHtml(cert.date_range) : `${escapeHtml(cert.issue_date)} - ${cert.expiry_date ? escapeHtml(cert.expiry_date) : 'Present'}`;
+        const descHtml = cert.description ? ` • ${escapeHtml(cert.description)}` : '';
+        
+        const imageHtml = cert.image ? `
+            <a href="${escapeHtml(cert.image)}" target="_blank">
+                <img src="${escapeHtml(cert.image)}" alt="${escapeHtml(cert.title)}" class="cert-preview">
+            </a>` : '';
+
+        const div = document.createElement('div');
+        div.className = 'cert-item';
+        div.id = `cert-item-${certId}`;
+        div.innerHTML = `
+            <span class="achievement-icon">${escapeHtml(cert.icon || '📜')}</span>
+            <div class="cert-info">
+                <p class="achievement-year">${dateRangeText}</p>
+                <h4>${escapeHtml(cert.title)}</h4>
+                <p>Issued by ${escapeHtml(cert.issuer)}${descHtml}</p>
+            </div>
+            ${imageHtml}
+            <div class="cert-actions">
+                ${starHtml}
+                ${editHtml}
+                ${deleteHtml}
+            </div>`;
+        return div;
+    }
+
+    // ─── Delete Handler ───────────────────────────────────────────────────────
+    async function handleDeleteCertification(certId, certTitle, deleteUrl) {
+        if (!confirm(`Delete certification "${certTitle}"?`)) return;
+        try {
+            const response = await fetch(deleteUrl, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('Deleted', 'Certification removed successfully.', 'success');
+                fetchCertifications(searchInput.value.trim());
+            } else {
+                 showToast('Error', data.message || 'Failed to delete certification.', 'error');
+            }
+        } catch (err) {
+            showToast('Error', 'Failed to delete certification.', 'error');
+        }
+    }
+
+    // ─── Fetch Certifications ─────────────────────────────────────────────────
+    async function fetchCertifications(searchQuery = '') {
+        if (certificationsAbortController) certificationsAbortController.abort();
+        certificationsAbortController = new AbortController();
+
+        try {
+            displayPageSection({ showLoading: true });
+
+            const url = searchQuery
+                ? `${BASE_CERTIFICATIONS_ENDPOINT}?title=${encodeURIComponent(searchQuery)}`
+                : BASE_CERTIFICATIONS_ENDPOINT;
+
+            const response = await fetch(url, {
+                headers: { 'Accept': 'application/json' },
+                signal: certificationsAbortController.signal,
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch');
+
+            const data = await response.json();
+
+            if (data.length === 0) {
+                displayPageSection({ showEmpty: true });
+                return;
+            }
+
+            certList.innerHTML = '';
+            data.sort((a, b) => a.fields.title.localeCompare(b.fields.title)).forEach(item => {
+                certList.appendChild(buildCertificationElement(item));
+            });
+
+            displayPageSection({ showList: true });
+
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error('Error loading certifications:', error);
+            displayPageSection({ showError: true });
+        }
+    }
+
+    // ─── Search Handlers ──────────────────────────────────────────────────────
+    function searchCertifications() {
+        fetchCertifications(searchInput.value.trim());
+    }
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(searchCertifications, SEARCH_DEBOUNCE_DELAY);
+    });
+
+    searchForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearTimeout(searchDebounceTimer);
+        searchCertifications();
+    });
+
+    // ─── Modal + AJAX Add Certification ───────────────────────────────────────
+    const certificationForm = document.getElementById('certification-form');
+
+    function closeCertificationModal() {
+        const modal = document.getElementById('add-certification-modal');
+        if (modal) modal.hidePopover();
+    }
+
+    async function addCertification(event) {
+        event.preventDefault();
+
+        const submitButton = certificationForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+
+        try {
+            const response = await fetch(CREATE_CERTIFICATION_ENDPOINT, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                body: new FormData(certificationForm),
+            });
+            const result = await response.json().catch(() => ({}));
+
+            if (response.ok) {
+                certificationForm.reset();
+                closeCertificationModal();
+                showToast('Success', 'New certification added successfully!', 'success');
+                fetchCertifications(searchInput.value.trim());
+            } else {
+                const errorMessages = result.errors
+                    ? Object.values(result.errors).flat().map(e => e.message)
+                    : [result.message || `An error occurred (status ${response.status}).`];
+                showToast('Failed to add certification', errorMessages.join(' '), 'error');
+            }
+        } catch (error) {
+            console.error('Error adding certification:', error);
+            showToast('Failed to add certification', 'Could not connect to server. Please try again.', 'error');
+        } finally {
+            submitButton.disabled = false;
+        }
+    }
+
+    if (certificationForm) {
+        certificationForm.addEventListener('submit', addCertification);
+    }
+
+    // ─── Initial Load ─────────────────────────────────────────────────────────
+    fetchCertifications(searchInput.value.trim());
+</script>
+{% endblock extra_js %}

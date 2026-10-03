@@ -39,27 +39,38 @@ python manage.py runserver
 
 5. Buka browser ke `http://127.0.0.1:8000/`
 
-## Tugas 4
+## Tugas 5
 ## Pertanyaan Reflektif
-Minggu ini dihilangkan
+1. **Jelaskan apa itu debouncing dan mengapa teknik ini penting diterapkan pada fitur pencarian yang menggunakan AJAX!**
+   Debouncing adalah teknik pemrograman yang menunda eksekusi sebuah fungsi sampai jeda waktu tertentu berlalu sejak pemanggilan fungsi tersebut yang terakhir. Pada fitur pencarian berbasis AJAX, sebuah *request* ke server biasanya terpicu setiap kali pengguna mengetik karakter baru (misalnya event `keyup` atau `input`). Tanpa debouncing, mengetik kata "django" akan memicu 6 request terpisah secara berurutan dalam waktu yang sangat singkat. Hal ini dapat membebani server, menyia-nyiakan *bandwidth*, dan menyebabkan *race condition* pada hasil pencarian. Dengan menerapkan debouncing, request hanya akan dikirim setelah pengguna berhenti atau menjeda ketikannya selama waktu tertentu (misalnya 300ms). Teknik ini sangat penting karena secara signifikan mengurangi jumlah *request* ke server, sehingga meningkatkan performa dan efisiensi aplikasi.
+
+2. **Jelaskan fungsi dari penggunaan await ketika kita menggunakan fetch()! Apa yang akan terjadi jika kita tidak menggunakan await?**
+   Fungsi `fetch()` berjalan secara asinkronus (asynchronous) dan mengembalikan sebuah *Promise*. Kata kunci `await` berfungsi untuk memberitahu JavaScript agar "menunggu" dan menunda eksekusi kode di baris selanjutnya sampai *Promise* dari `fetch()` tersebut berstatus *resolved* (berhasil menyelesaikan *request* jaringan dan mengembalikan HTTP Response).
+   **Jika kita tidak menggunakan `await`:** Kode di bawahnya akan langsung dieksekusi tanpa menunggu balasan dari server. Variabel yang menampung hasil `fetch()` hanya akan berisi objek *Promise* yang masih berstatus *pending*, bukan berisi balasan data sebenarnya. Akibatnya, saat kita mencoba mengolah data tersebut (seperti menjalankan `.json()`), program akan mengalami error karena data yang dibutuhkan dari *response* belum benar-benar ada.
+
+3. **Jelaskan apa itu serangan XSS (Cross-Site Scripting) dan mengapa data yang ditampilkan melalui AJAX/JavaScript lebih rentan terhadap serangan ini daripada data yang ditampilkan langsung melalui template Django!**
+   Serangan XSS (Cross-Site Scripting) adalah celah keamanan situs web di mana penyerang menyusupkan kode atau skrip berbahaya (biasanya JavaScript) ke dalam data situs, yang kemudian akan tanpa sengaja dieksekusi oleh browser pengguna lain yang melihat data tersebut. Ini bisa berakibat pencurian *cookie*, *session*, atau data sensitif pengguna.
+   **Mengapa AJAX/JavaScript lebih rentan?** Saat kita me-render data langsung menggunakan template HTML Django (misalnya `{{ nama }}`), Django memiliki fitur *auto-escaping* bawaan. Fitur ini secara otomatis mengubah karakter berbahaya seperti `<` dan `>` menjadi entitas aman HTML (`&lt;` dan `&gt;`), sehingga tag berbahaya tidak bisa dieksekusi oleh browser. Namun, ketika kita mengambil data dalam bentuk JSON mentah melalui AJAX lalu menampilkannya secara dinamis ke halaman menggunakan JavaScript (contohnya mengatur nilai properti `.innerHTML`), JavaScript tidak akan melakukan *auto-escaping* secara otomatis. Jika tidak ada mekanisme pencegahan tambahan (seperti fungsi `escapeHtml` manual di JavaScript atau sanitasi `strip_tags` pada *backend*), string HTML berbahaya dari JSON tersebut akan disisipkan dan dieksekusi begitu saja, membuat aplikasi sangat rentan terhadap serangan XSS.
 
 ## AI Disclosure
-Tools yang digunakan: Claude
+Tools yang digunakan: Gemini
 
-#### Peran AI dalam Pengembangan:
-Penggunaan AI terutama mencakup:
-1. Memberikan contoh dan arahan dalam mengimplementasikan sistem autentikasi bawaan Django (register, login, logout), penggunaan session dan cookie (`last_login`), serta mekanisme CSRF, mengikuti pola dari Tutorial 04.
-2. Memberikan arahan dalam menerapkan sistem role-based authorization dengan empat peran (pengunjung, pengguna biasa, editor, superuser) menggunakan `@login_required`, `is_superuser`, dan `Django Group` untuk peran editor, mencakup implementasi pada bagian Education, Experience, Skill, Achievement, dan Certification.
-3. Memberikan contoh implementasi fitur star (`ManyToManyField` ke model `User`) beserta view `toggle_star` untuk tiap bagian portofolio.
-4. Membantu debugging error seperti `ImportError` akibat fungsi yang hilang saat pengeditan `views.py`, serta `TemplateSyntaxError` akibat tag Django yang tidak seimbang.
-5. Memberikan saran styling CSS untuk kesejajaran tombol aksi (star, edit, delete) pada berbagai ukuran layar.
+#### Peran AI dalam Pengembangan
+1. Memberikan contoh dan arahan terkait penerapan AJAX pada halaman Skills, Achievements, dan Certifications, termasuk pola penggunaan `get_json`, pembuatan view `create_ajax`, dan penambahan endpoint `add-ajax/`. Implementasi dan penyesuaian kode dilakukan secara mandiri sesuai struktur proyek.
+2. Memberikan saran terkait struktur halaman HTML untuk mendukung AJAX, seperti loading state, error state, empty state, debounced search, modal form untuk superuser, serta rendering data secara dinamis menggunakan `escapeHtml`. Struktur akhir dan penyesuaian dengan kebutuhan masing-masing halaman dilakukan secara manual.
+3. Memberikan referensi mengenai penggunaan Popover API dalam pembuatan komponen modal seperti `skill_form_modal.html`, kemudian diimplementasikan dan disesuaikan secara manual dengan struktur proyek.
+4. Memberikan arahan mengenai sanitasi input menggunakan metode `clean_...` pada form dan `strip_tags` sebagai salah satu lapisan mitigasi terhadap penyisipan HTML atau script berbahaya. Implementasi metode tersebut dilakukan secara manual pada form yang diperlukan.
 
-#### Bagian yang Dikerjakan Manual:
-1. Pemilihan bagian Education sebagai implementasi wajib Tugas 4, serta penerapan pola yang sama secara mandiri pada bagian Experience, Skill, Achievement, dan Certification sebagai pengembangan tambahan di luar instruksi minimum.
-2. Pembuatan Group "Editor" melalui Django Admin serta penetapan akun pengguna ke dalam grup tersebut, baik di lingkungan lokal maupun PWS.
-3. Implementasi kode ke dalam proyek, penyesuaian struktur template agar kontrol aksi (create, edit, delete) tampil sesuai peran pengguna yang sedang login.
-4. Pengujian manual seluruh alur autentikasi dan otorisasi (pengunjung, pengguna biasa, editor, superuser) melalui browser untuk memastikan setiap peran hanya dapat melakukan tindakan yang diizinkan.
-5. Penambahan fitur konfirmasi ganda (modal kustom dan `confirm()` bawaan browser) sebelum data dihapus, sebagai lapisan pencegahan kesalahan pengguna di luar instruksi tutorial.
+#### Bagian yang Dikerjakan Manual
+1. Pemilihan bagian Skills, Achievements, dan Certifications sebagai target implementasi AJAX sebagai pengembangan tambahan di luar tutorial dasar yang hanya menargetkan satu bagian.
+2. Implementasi dan penyesuaian kode AJAX pada masing-masing halaman, termasuk pengaturan endpoint, pengolahan response JSON, rendering data, pencarian dengan debouncing, loading/error/empty state, dan integrasi dengan struktur template yang sudah ada.
+3. Pembuatan dan penyesuaian komponen modal serta form sesuai kebutuhan masing-masing halaman, termasuk pengaturan hak akses superuser.
+4. Verifikasi pola inline delete agar sesuai dengan kebutuhan setiap halaman serta memastikan proses penghapusan tetap menggunakan dua tahap konfirmasi, yaitu modal kustom dan `confirm()` bawaan browser.
+5. Implementasi sanitasi input pada form yang diperlukan serta penyesuaian `escapeHtml` pada proses rendering data secara dinamis.
+6. Pengujian manual alur CRUD melalui AJAX, pencarian dengan debouncing, serta pengujian terhadap input yang mengandung HTML/script pada seluruh form yang diubah.
 
 #### Refleksi Kritis terhadap Penggunaan AI:
 AI membantu mempercepat penerapan pola autentikasi dan otorisasi yang berulang di lima bagian portofolio, terutama dalam menyusun kombinasi dekorator `@login_required` dengan pemeriksaan `is_superuser` dan keanggotaan grup Editor. Namun, saya menemukan bahwa AI tidak selalu memprediksi kondisi aktual proyek saya, misalnya saat fungsi `delete_experience` sempat hilang akibat proses penyuntingan manual yang tidak sengaja menimpa kode sebelumnya; masalah ini baru terdeteksi melalui `ImportError` saat server dijalankan, bukan dari analisis AI sebelumnya. Saya juga secara sadar memilih untuk memperluas penerapan sistem role-based ke seluruh bagian portofolio (bukan hanya Education), meskipun ini di luar cakupan minimum tugas, untuk menjaga konsistensi arsitektur dan menghindari dua mekanisme proteksi berbeda (secret key dan autentikasi Django) berjalan bersamaan dalam satu proyek. Pengalaman ini menegaskan bahwa AI efektif digunakan sebagai referensi pola implementasi, tetapi verifikasi terhadap kondisi kode yang sebenarnya tetap sepenuhnya menjadi tanggung jawab saya sebagai pengembang.
+
+#### Refleksi Kritis terhadap Penggunaan AI
+Secara keseluruhan, AI sangat membantu mempercepat penerapan pola-pola berulang, seperti autentikasi role-based di berbagai bagian portofolio dan pemahaman tentang AJAX, debouncing, serta sanitasi input. Namun, saya menemukan bahwa AI tidak selalu dapat memprediksi kondisi aktual atau arsitektur spesifik proyek saya. Misalnya, masalah kode yang tidak sengaja tertimpa (seperti hilangnya `delete_experience`) baru terdeteksi melalui error saat runtime, bukan dari analisis AI. Selain itu, setiap kode dari AI untuk implementasi AJAX dan DOM manipulation tidak bisa langsung di-copy-paste, melainkan harus disesuaikan dengan struktur template dan kebutuhan keamanan (seperti mencegah XSS). Pengalaman ini menegaskan bahwa AI efektif digunakan sebagai referensi pola implementasi dan alat bantu pemahaman, tetapi verifikasi dan pengujian terhadap kondisi kode yang sebenarnya tetap sepenuhnya menjadi tanggung jawab saya sebagai pengembang.

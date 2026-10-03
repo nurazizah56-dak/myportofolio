@@ -192,3 +192,23 @@ class CertificationForm(ModelForm):
             "icon": TextInput(attrs={"placeholder": "📜"}),
             "image": TextInput(attrs={"placeholder": "/static/img/cert-example.png"}),
         }
+
+    def clean_title(self):
+        from django.utils.html import strip_tags
+        from django.core.exceptions import ValidationError
+        title = strip_tags(self.cleaned_data["title"]).strip()
+        if not title:
+            raise ValidationError("Certification title cannot be empty or contain only HTML tags.")
+        return title
+
+    def clean_issuer(self):
+        from django.utils.html import strip_tags
+        from django.core.exceptions import ValidationError
+        issuer = strip_tags(self.cleaned_data["issuer"]).strip()
+        if not issuer:
+            raise ValidationError("Issuer cannot be empty or contain only HTML tags.")
+        return issuer
+
+    def clean_description(self):
+        from django.utils.html import strip_tags
+        return strip_tags(self.cleaned_data.get("description", "")).strip()

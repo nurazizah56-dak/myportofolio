@@ -1,7 +1,12 @@
 from django.utils.html import strip_tags
 from rest_framework import serializers
+
 from main.models import Education
 
+
+# ---------------------------------------------------------------------------
+# Education
+# ---------------------------------------------------------------------------
 class EducationSerializer(serializers.ModelSerializer):
     is_ongoing = serializers.BooleanField(read_only=True)
     star_count = serializers.SerializerMethodField()
@@ -51,7 +56,7 @@ class EducationSerializer(serializers.ModelSerializer):
     def validate(self, data):
         start_year = data.get("start_year")
         end_year = data.get("end_year")
-        
+
         # In partial updates (PATCH), retrieve existing start_year if not provided
         if self.instance:
             if start_year is None:
@@ -74,4 +79,3 @@ class EducationSerializer(serializers.ModelSerializer):
 
     def get_starred_by_names(self, obj):
         return ", ".join(user.username for user in obj.starred_by.all())
-

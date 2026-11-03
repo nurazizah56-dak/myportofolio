@@ -15,22 +15,27 @@ from main.permissions import IsPortfolioOwnerOrEditorOrReadOnly
 from main.serializers import EducationSerializer
 
 
+# ---------------------------------------------------------------------------
+# Education
+# ---------------------------------------------------------------------------
 @api_view(["GET", "HEAD", "POST"])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def education_list(request):
     if request.method in ("GET", "HEAD"):
         educations = Education.objects.prefetch_related("starred_by").order_by("-start_year", "institution_name")
-        q = request.query_params.get("search", "").strip() or request.query_params.get("institution_name", "").strip() or request.query_params.get("q", "").strip()
+        q = (
+            request.query_params.get("search", "").strip()
+            or request.query_params.get("institution_name", "").strip()
+            or request.query_params.get("q", "").strip()
+        )
         if q:
             educations = educations.filter(
                 Q(institution_name__icontains=q) |
                 Q(degree__icontains=q) |
                 Q(location__icontains=q)
             )
-        serializer = EducationSerializer(
-            educations, many=True, context={"request": request}
-        )
+        serializer = EducationSerializer(educations, many=True, context={"request": request})
         return Response(serializer.data)
 
     serializer = EducationSerializer(data=request.data, context={"request": request})
@@ -76,4 +81,3 @@ def education_star(request, education_id):
         education.starred_by.add(request.user)
     serializer = EducationSerializer(education, context={"request": request})
     return Response(serializer.data)
-

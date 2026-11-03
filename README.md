@@ -69,5 +69,5 @@ Tools yang digunakan: Gemini
 5. Implementasi sanitasi input pada form yang diperlukan serta penyesuaian `escapeHtml` pada proses rendering data secara dinamis.
 6. Pengujian manual alur CRUD melalui AJAX, pencarian dengan debouncing, serta pengujian terhadap input yang mengandung HTML/script pada seluruh form yang diubah.
 
-#### Refleksi Kritis terhadap Penggunaan AI:
+#### Refleksi Kritis terhadap Penggunaan AI
 Secara keseluruhan, AI sangat membantu mempercepat penerapan pola-pola berulang, seperti autentikasi role-based di berbagai bagian portofolio dan pemahaman tentang AJAX, debouncing, serta sanitasi input. Namun, saya menemukan bahwa AI tidak selalu dapat memprediksi kondisi aktual atau arsitektur spesifik proyek saya. Misalnya, masalah kode yang tidak sengaja tertimpa (seperti hilangnya `delete_experience`) baru terdeteksi melalui error saat runtime, bukan dari analisis AI. Selain itu, setiap kode dari AI untuk implementasi AJAX dan DOM manipulation tidak bisa langsung di-copy-paste, melainkan harus disesuaikan dengan struktur template dan kebutuhan keamanan (seperti mencegah XSS). Pengalaman ini menegaskan bahwa AI efektif digunakan sebagai referensi pola implementasi dan alat bantu pemahaman, tetapi verifikasi dan pengujian terhadap kondisi kode yang sebenarnya tetap sepenuhnya menjadi tanggung jawab saya sebagai pengembang.

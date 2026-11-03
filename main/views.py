@@ -166,11 +166,13 @@ def toggle_star_experience(request, experience_id):
 
 def show_education(request):
     institution_name_query = request.GET.get("institution_name", "").strip()
+    is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
 
     context = {
         "name": "Nur Azizah",
         "institution_name_query": institution_name_query,
         "form": EducationForm(),
+        "is_editor": is_editor,
     }
     return render(request, "education.html", context)
 
@@ -213,6 +215,7 @@ def create_education(request):
 
 def get_education_json(request):
     institution_name_query = request.GET.get("institution_name", "").strip()
+    is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
 
     education = Education.objects.prefetch_related('starred_by').all().order_by('-start_year')
 

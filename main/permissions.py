@@ -23,3 +23,4 @@ class IsPortfolioOwnerOrEditorOrReadOnly(BasePermission):
             request.method in ("PUT", "PATCH")
             and request.user.groups.filter(name="Editor").exists()
         )
+

@@ -76,3 +76,4 @@ def education_star(request, education_id):
         education.starred_by.add(request.user)
     serializer = EducationSerializer(education, context={"request": request})
     return Response(serializer.data)
+

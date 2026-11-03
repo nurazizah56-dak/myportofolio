@@ -1,0 +1,44 @@
+<div id="edit-education-modal" class="project-form-modal" popover="auto" role="dialog" aria-modal="true" aria-labelledby="edit-education-modal-title">
+    <button type="button" class="project-form-modal__backdrop" popovertarget="edit-education-modal" popovertargetaction="hide" aria-label="Close edit education form"></button>
+    <div class="project-form-modal__content">
+        <button type="button" class="project-form-modal__close" popovertarget="edit-education-modal" popovertargetaction="hide" aria-label="Close edit education form">×</button>
+        <h2 id="edit-education-modal-title">Edit Education</h2>
+        <form id="edit-education-form" class="project-form">
+            {% csrf_token %}
+            <input type="hidden" id="edit-education-id" name="id">
+            <div class="form-group">
+                <label for="edit-institution-name">Institution Name</label>
+                <input type="text" id="edit-institution-name" name="institution_name" class="form-control" required placeholder="Universitas Indonesia">
+            </div>
+            <div class="form-group">
+                <label for="edit-degree">Degree</label>
+                <input type="text" id="edit-degree" name="degree" class="form-control" required placeholder="Bachelor of Information Systems">
+            </div>
+            <div class="form-group">
+                <label for="edit-location">Location</label>
+                <input type="text" id="edit-location" name="location" class="form-control" placeholder="Depok, West Java">
+            </div>
+            <div class="form-group">
+                <label for="edit-maps-url">Google Maps URL</label>
+                <input type="url" id="edit-maps-url" name="maps_url" class="form-control" placeholder="https://maps.google.com/...">
+            </div>
+            <div class="form-group">
+                <label for="edit-logo">Logo URL</label>
+                <input type="text" id="edit-logo" name="logo" class="form-control" placeholder="https://.../logo.png">
+            </div>
+            <div class="form-group">
+                <label for="edit-start-year">Start Year</label>
+                <input type="number" id="edit-start-year" name="start_year" class="form-control" required placeholder="2024">
+            </div>
+            <div class="form-group">
+                <label for="edit-end-year">End Year (leave blank if ongoing)</label>
+                <input type="number" id="edit-end-year" name="end_year" class="form-control" placeholder="2028">
+            </div>
+            <div class="project-form-modal__actions">
+                <button type="button" class="button button-secondary" popovertarget="edit-education-modal" popovertargetaction="hide">Cancel</button>
+                <button type="submit" class="button">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+

@@ -4,7 +4,12 @@ from main import api_views
 app_name = "api"
 
 urlpatterns = [
+    # Education
     path("education/", api_views.education_list, name="education-list"),
     path("education/<uuid:education_id>/", api_views.education_detail, name="education-detail"),
     path("education/<uuid:education_id>/star/", api_views.education_star, name="education-star"),
+    # Skill
+    path("skills/", api_views.skill_list, name="skill-list"),
+    path("skills/<uuid:skill_id>/", api_views.skill_detail, name="skill-detail"),
+    path("skills/<uuid:skill_id>/star/", api_views.skill_star, name="skill-star"),
 ]

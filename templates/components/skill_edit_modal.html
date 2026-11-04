@@ -1,0 +1,35 @@
+<div id="edit-skill-modal" class="project-form-modal" popover="auto" role="dialog" aria-modal="true" aria-labelledby="edit-skill-modal-title">
+    <button type="button" class="project-form-modal__backdrop" popovertarget="edit-skill-modal" popovertargetaction="hide" aria-label="Close edit skill form"></button>
+    <div class="project-form-modal__content">
+        <button type="button" class="project-form-modal__close" popovertarget="edit-skill-modal" popovertargetaction="hide" aria-label="Close edit skill form">&times;</button>
+        <h2 id="edit-skill-modal-title">Edit Skill</h2>
+        <form id="edit-skill-form" class="project-form">
+            {% csrf_token %}
+            <input type="hidden" id="edit-skill-id" name="id">
+            <div class="form-group">
+                <label for="edit-skill-category">Category</label>
+                <select id="edit-skill-category" name="category" class="form-control" required>
+                    <option value="soft">Soft Skill</option>
+                    <option value="hard">Hard Skill</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="edit-skill-name">Skill Name</label>
+                <input type="text" id="edit-skill-name" name="name" class="form-control" required placeholder="e.g. Communication, Python">
+            </div>
+            <div class="form-group">
+                <label for="edit-skill-score">Score (0.0 - 10.0)</label>
+                <input type="number" id="edit-skill-score" name="score" class="form-control" step="0.1" min="0" max="10" required placeholder="8.5">
+            </div>
+            <div class="form-group">
+                <label for="edit-skill-order">Display Order</label>
+                <input type="number" id="edit-skill-order" name="order" class="form-control" min="0" placeholder="0">
+            </div>
+            <div class="project-form-modal__actions">
+                <button type="button" class="button button-secondary" popovertarget="edit-skill-modal" popovertargetaction="hide">Cancel</button>
+                <button type="submit" class="button">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+

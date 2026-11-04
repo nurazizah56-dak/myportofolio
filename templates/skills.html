@@ -26,7 +26,7 @@
                        id="skill-search-input"
                        name="name"
                        value="{{ name_query }}"
-                       placeholder="Search by skill name"
+                       placeholder="Search by skill name..."
                        class="project-search__input"
                        aria-label="Search by skill name">
                 <button type="submit" class="button">Search</button>
@@ -68,17 +68,20 @@
     {% include "components/skill_form_modal.html" %}
 {% endif %}
 
+{% if user.is_superuser or is_editor %}
+    {% include "components/skill_edit_modal.html" %}
+{% endif %}
+
 {% endblock content %}
 
 {% block extra_js %}
 <script>
     // ─── Configuration ────────────────────────────────────────────────────────
-    const BASE_SKILLS_ENDPOINT = "{% url 'main:get_skill_json' %}";
-    {% if user.is_superuser %}
-    const CREATE_SKILL_ENDPOINT = "{% url 'main:create_skill_ajax' %}";
-    {% endif %}
+    const BASE_SKILLS_ENDPOINT = "{% url 'api:skill-list' %}";
     const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
     const IS_EDITOR = "{{ is_editor|yesno:'true,false' }}" === "true";
+    const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
+    const LOGIN_URL = "{% url 'main:login' %}";
     const SEARCH_DEBOUNCE_DELAY = 300;
 
     // ─── DOM References ───────────────────────────────────────────────────────
@@ -94,6 +97,7 @@
 
     let skillsAbortController;
     let searchDebounceTimer;
+    let cachedSkills = new Map();
 
     // ─── XSS Protection ──────────────────────────────────────────────────────
     function escapeHtml(value) {
@@ -131,16 +135,9 @@
     }
 
     // ─── Build Skill Bar Element ──────────────────────────────────────────────
-    function buildSkillElement(item) {
-        const skill = item.fields;
-        const skillId = item.pk;
-
-        const starUrl = "{% url 'main:toggle_star_skill' '00000000-0000-0000-0000-000000000000' %}"
-            .replace('00000000-0000-0000-0000-000000000000', skillId);
-        const editUrl = "{% url 'main:update_skill' '00000000-0000-0000-0000-000000000000' %}"
-            .replace('00000000-0000-0000-0000-000000000000', skillId);
-        const deleteUrl = "{% url 'main:delete_skill' '00000000-0000-0000-0000-000000000000' %}"
-            .replace('00000000-0000-0000-0000-000000000000', skillId);
+    function buildSkillElement(skill) {
+        const skillId = skill.id;
+        cachedSkills.set(skillId, skill);
 
         const isStarredClass = skill.is_starred ? ' is-starred' : '';
         const starTitle = skill.star_count > 0
@@ -148,24 +145,23 @@
             : 'Be the first to star';
 
         const editHtml = (IS_SUPERUSER || IS_EDITOR)
-            ? `<a href="${editUrl}" class="skill-edit-btn" title="Edit">✎</a>`
+            ? `<button type="button" class="skill-edit-btn" title="Edit" onclick="openEditSkillModal('${skillId}')">✎</button>`
             : '';
 
         const starHtml = `
-            <form method="post" action="${starUrl}" class="star-form">
-                {% csrf_token %}
-                <button type="submit"
-                        class="button-star-icon${isStarredClass}"
-                        title="${escapeHtml(starTitle)}">
-                    ★ ${skill.star_count}
-                </button>
-            </form>`;
+            <button type="button"
+                    class="button-star-icon${isStarredClass}"
+                    id="star-btn-${skillId}"
+                    title="${escapeHtml(starTitle)}"
+                    onclick="handleToggleStar('${skillId}')">
+                ★ <span id="star-count-${skillId}">${skill.star_count}</span>
+            </button>`;
 
         const deleteHtml = IS_SUPERUSER
             ? `<button type="button"
                        class="skill-delete-btn"
                        title="Delete"
-                       onclick="handleDeleteSkill('${skillId}', '${escapeHtml(skill.name)}', '${deleteUrl}')">🗑</button>`
+                       onclick="handleDeleteSkill('${skillId}', '${escapeHtml(skill.name)}')">🗑</button>`
             : '';
 
         const col = document.createElement('div');
@@ -184,22 +180,135 @@
         return col;
     }
 
-    // ─── Delete Handler ───────────────────────────────────────────────────────
-    async function handleDeleteSkill(skillId, skillName, deleteUrl) {
-        if (!confirm(`Delete skill "${skillName}"?`)) return;
+    // ─── Star Toggle Handler ──────────────────────────────────────────────────
+    async function handleToggleStar(skillId) {
+        if (!IS_AUTHENTICATED) {
+            showToast('Login Required', 'You must log in to star a skill.', 'error');
+            setTimeout(() => { window.location.href = LOGIN_URL; }, 1500);
+            return;
+        }
+
         try {
-            const response = await fetch(deleteUrl, {
+            const response = await fetch(`${BASE_SKILLS_ENDPOINT}${skillId}/star/`, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
             });
-            const data = await response.json();
-            if (data.success) {
-                showToast('Deleted', 'Skill removed successfully.', 'success');
-                fetchSkills(searchInput.value.trim());
+
+            if (response.ok) {
+                const updated = await response.json();
+                cachedSkills.set(skillId, updated);
+                const starBtn = document.getElementById(`star-btn-${skillId}`);
+                const starCount = document.getElementById(`star-count-${skillId}`);
+                if (starBtn && starCount) {
+                    starBtn.classList.toggle('is-starred', updated.is_starred);
+                    starCount.textContent = updated.star_count;
+                    starBtn.title = updated.star_count > 0
+                        ? `Starred by ${updated.starred_by_names}`
+                        : 'Be the first to star';
+                }
+            } else {
+                const data = await response.json().catch(() => ({}));
+                showToast('Failed to Star', data.detail || 'Could not toggle star.', 'error');
             }
         } catch (err) {
+            console.error('Star error:', err);
+            showToast('Error', 'Network error while updating star.', 'error');
+        }
+    }
+
+    // ─── Delete Handler ───────────────────────────────────────────────────────
+    async function handleDeleteSkill(skillId, skillName) {
+        if (!confirm(`Delete skill "${skillName}"? This action cannot be undone.`)) return;
+
+        try {
+            const response = await fetch(`${BASE_SKILLS_ENDPOINT}${skillId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            });
+
+            if (response.status === 204) {
+                showToast('Deleted', `Skill "${skillName}" removed successfully.`, 'success');
+                const col = document.getElementById(`skill-col-${skillId}`);
+                if (col) col.remove();
+                cachedSkills.delete(skillId);
+                fetchSkills(searchInput.value.trim());
+            } else {
+                const data = await response.json().catch(() => ({}));
+                showToast('Failed to Delete', data.detail || 'You do not have permission to delete this skill.', 'error');
+            }
+        } catch (err) {
+            console.error('Delete error:', err);
             showToast('Error', 'Failed to delete skill.', 'error');
         }
+    }
+
+    // ─── Edit Modal Handlers ──────────────────────────────────────────────────
+    const editModal = document.getElementById('edit-skill-modal');
+    const editForm  = document.getElementById('edit-skill-form');
+
+    function openEditSkillModal(skillId) {
+        const skill = cachedSkills.get(skillId);
+        if (!skill || !editModal || !editForm) return;
+
+        document.getElementById('edit-skill-id').value = skill.id;
+        document.getElementById('edit-skill-category').value = skill.category;
+        document.getElementById('edit-skill-name').value = skill.name;
+        document.getElementById('edit-skill-score').value = skill.score;
+        document.getElementById('edit-skill-order').value = skill.order ?? 0;
+
+        editModal.showPopover();
+    }
+
+    if (editForm) {
+        editForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const submitBtn = editForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+
+            const skillId = document.getElementById('edit-skill-id').value;
+            const payload = {
+                category: document.getElementById('edit-skill-category').value,
+                name: document.getElementById('edit-skill-name').value.trim(),
+                score: document.getElementById('edit-skill-score').value,
+                order: parseInt(document.getElementById('edit-skill-order').value, 10) || 0,
+            };
+
+            try {
+                const response = await fetch(`${BASE_SKILLS_ENDPOINT}${skillId}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    if (editModal) editModal.hidePopover();
+                    showToast('Success', 'Skill updated successfully!', 'success');
+                    fetchSkills(searchInput.value.trim());
+                } else {
+                    const errors = [];
+                    for (const [field, msgs] of Object.entries(data)) {
+                        const msgList = Array.isArray(msgs) ? msgs.join(', ') : msgs;
+                        errors.push(`${field}: ${msgList}`);
+                    }
+                    showToast('Validation Error', errors.join(' ') || data.detail || 'Failed to update skill.', 'error');
+                }
+            } catch (err) {
+                console.error('Update error:', err);
+                showToast('Error', 'Network error while updating skill.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
     }
 
     // ─── Fetch Skills ─────────────────────────────────────────────────────────
@@ -211,7 +320,7 @@
             displayPageSection({ showLoading: true });
 
             const url = searchQuery
-                ? `${BASE_SKILLS_ENDPOINT}?name=${encodeURIComponent(searchQuery)}`
+                ? `${BASE_SKILLS_ENDPOINT}?search=${encodeURIComponent(searchQuery)}`
                 : BASE_SKILLS_ENDPOINT;
 
             const response = await fetch(url, {
@@ -223,13 +332,13 @@
 
             const skillData = await response.json();
 
-            const softSkills = skillData.filter(s => s.fields.category === 'soft');
-            const hardSkills = skillData.filter(s => s.fields.category === 'hard');
-
-            if (skillData.length === 0) {
+            if (!Array.isArray(skillData) || skillData.length === 0) {
                 displayPageSection({ showEmpty: true });
                 return;
             }
+
+            const softSkills = skillData.filter(s => s.category === 'soft');
+            const hardSkills = skillData.filter(s => s.category === 'hard');
 
             softGrid.innerHTML = '';
             softSkills.forEach(item => softGrid.appendChild(buildSkillElement(item)));
@@ -281,10 +390,14 @@
         submitButton.disabled = true;
 
         try {
-            const response = await fetch(CREATE_SKILL_ENDPOINT, {
+            const formData = new FormData(skillForm);
+            const response = await fetch(BASE_SKILLS_ENDPOINT, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                body: new FormData(skillForm),
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Accept': 'application/json',
+                },
+                body: formData,
             });
             const result = await response.json().catch(() => ({}));
 
@@ -294,10 +407,12 @@
                 showToast('Success', 'New skill added successfully!', 'success');
                 fetchSkills(searchInput.value.trim());
             } else {
-                const errorMessages = result.errors
-                    ? Object.values(result.errors).flat().map(e => e.message)
-                    : [result.message || `An error occurred (status ${response.status}).`];
-                showToast('Failed to add skill', errorMessages.join(' '), 'error');
+                const errors = [];
+                for (const [field, msgs] of Object.entries(result)) {
+                    const msgList = Array.isArray(msgs) ? msgs.join(', ') : msgs;
+                    errors.push(`${field}: ${msgList}`);
+                }
+                showToast('Failed to add skill', errors.join(' ') || result.detail || 'Could not add skill.', 'error');
             }
         } catch (error) {
             console.error('Error adding skill:', error);

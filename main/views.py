@@ -37,11 +37,13 @@ from django.views.decorators.http import require_POST
 def show_experience(request):
     category_query = request.GET.get("category", "").strip()
     title_query = request.GET.get("title", "").strip()
+    is_editor = request.user.is_authenticated and request.user.groups.filter(name="Editor").exists()
 
     context = {
         "name": "Nur Azizah",
         "category_query": category_query,
         "title_query": title_query,
+        "is_editor": is_editor,
         "form": ExperienceForm(),
     }
     return render(request, "experience.html", context)

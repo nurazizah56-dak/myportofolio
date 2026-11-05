@@ -1,7 +1,7 @@
 from django.utils.html import strip_tags
 from rest_framework import serializers
 
-from main.models import Education, Skill
+from main.models import Education, Experience, Skill
 
 
 # ---------------------------------------------------------------------------
@@ -115,6 +115,67 @@ class SkillSerializer(serializers.ModelSerializer):
         if value is not None and not (0 <= float(value) <= 10):
             raise serializers.ValidationError("Score must be between 0 and 10.")
         return value
+
+    def get_star_count(self, obj):
+        return obj.starred_by.count()
+
+    def get_is_starred(self, obj):
+        request = self.context.get("request")
+        if request is None or not request.user.is_authenticated:
+            return False
+        return obj.starred_by.filter(pk=request.user.pk).exists()
+
+    def get_starred_by_names(self, obj):
+        return ", ".join(user.username for user in obj.starred_by.all())
+
+
+# ---------------------------------------------------------------------------
+# Experience
+# ---------------------------------------------------------------------------
+class ExperienceSerializer(serializers.ModelSerializer):
+    category_display = serializers.SerializerMethodField()
+    is_ongoing = serializers.BooleanField(read_only=True)
+    star_count = serializers.SerializerMethodField()
+    is_starred = serializers.SerializerMethodField()
+    starred_by_names = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Experience
+        fields = [
+            "id",
+            "title",
+            "description",
+            "category",
+            "category_display",
+            "thumbnail",
+            "started_at",
+            "ended_at",
+            "is_ongoing",
+            "star_count",
+            "is_starred",
+            "starred_by_names",
+        ]
+        read_only_fields = ["id", "started_at", "is_ongoing"]
+
+    def validate_title(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError("Experience title cannot be empty.")
+        return value
+
+    def validate_description(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError("Experience description cannot be empty.")
+        return value
+
+    def validate_thumbnail(self, value):
+        if value:
+            return strip_tags(value).strip()
+        return ""
+
+    def get_category_display(self, obj):
+        return obj.get_category_display()
 
     def get_star_count(self, obj):
         return obj.starred_by.count()

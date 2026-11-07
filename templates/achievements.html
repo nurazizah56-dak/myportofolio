@@ -27,7 +27,7 @@
                        id="achievement-search-input"
                        name="title"
                        value="{{ title_query }}"
-                       placeholder="Search by achievement title"
+                       placeholder="Search by achievement title..."
                        class="project-search__input"
                        aria-label="Search by achievement title">
                 <button type="submit" class="button">Search</button>
@@ -78,17 +78,20 @@
     {% include "components/achievement_form_modal.html" %}
 {% endif %}
 
+{% if user.is_superuser or is_editor %}
+    {% include "components/achievement_edit_modal.html" %}
+{% endif %}
+
 {% endblock content %}
 
 {% block extra_js %}
 <script>
     // ─── Configuration ────────────────────────────────────────────────────────
-    const BASE_ACHIEVEMENTS_ENDPOINT = "{% url 'main:get_achievement_json' %}";
-    {% if user.is_superuser %}
-    const CREATE_ACHIEVEMENT_ENDPOINT = "{% url 'main:create_achievement_ajax' %}";
-    {% endif %}
+    const BASE_ACHIEVEMENTS_ENDPOINT = "{% url 'api:achievement-list' %}";
     const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
     const IS_EDITOR = "{{ is_editor|yesno:'true,false' }}" === "true";
+    const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
+    const LOGIN_URL = "{% url 'main:login' %}";
     const SEARCH_DEBOUNCE_DELAY = 300;
 
     // ─── DOM References ───────────────────────────────────────────────────────
@@ -108,6 +111,7 @@
 
     let achievementsAbortController;
     let searchDebounceTimer;
+    let cachedAchievements = new Map();
 
     // Carousel events
     if (prevBtn && nextBtn && certCarousel) {
@@ -156,50 +160,43 @@
     }
 
     // ─── Build Achievement Element ────────────────────────────────────────────
-    function buildAchievementElement(item) {
-        const achievement = item.fields;
-        const achievementId = item.pk;
-
-        const starUrl = "{% url 'main:toggle_star_achievement' '00000000-0000-0000-0000-000000000000' %}"
-            .replace('00000000-0000-0000-0000-000000000000', achievementId);
-        const editUrl = "{% url 'main:update_achievement' '00000000-0000-0000-0000-000000000000' %}"
-            .replace('00000000-0000-0000-0000-000000000000', achievementId);
-        const deleteUrl = "{% url 'main:delete_achievement' '00000000-0000-0000-0000-000000000000' %}"
-            .replace('00000000-0000-0000-0000-000000000000', achievementId);
+    function buildAchievementElement(achievement) {
+        const achievementId = achievement.id;
+        cachedAchievements.set(achievementId, achievement);
 
         const isStarredClass = achievement.is_starred ? ' is-starred' : '';
+        const starText = achievement.is_starred ? 'Unstar' : 'Star';
         const starTitle = achievement.star_count > 0
             ? `Starred by ${escapeHtml(achievement.starred_by_names)}`
             : 'Be the first to star';
 
         const editHtml = (IS_SUPERUSER || IS_EDITOR)
-            ? `<a href="${editUrl}" class="button" title="Edit">Edit</a>`
+            ? `<button type="button" class="button" title="Edit" onclick="openEditAchievementModal('${achievementId}')">Edit</button>`
             : '';
 
         const starHtml = `
-            <form method="post" action="${starUrl}" class="star-form">
-                {% csrf_token %}
-                <button type="submit"
-                        class="button button-star${isStarredClass}"
-                        title="${escapeHtml(starTitle)}">
-                    <span aria-hidden="true">★</span>
-                    ${achievement.is_starred ? 'Unstar' : 'Star'}
-                    <span class="star-count">${achievement.star_count}</span>
-                </button>
-            </form>`;
+            <button type="button"
+                    class="button button-star${isStarredClass}"
+                    id="star-btn-${achievementId}"
+                    title="${escapeHtml(starTitle)}"
+                    onclick="handleToggleStar('${achievementId}')">
+                <span aria-hidden="true">★</span>
+                <span id="star-text-${achievementId}">${starText}</span>
+                <span class="star-count" id="star-count-${achievementId}">${achievement.star_count}</span>
+            </button>`;
 
         const deleteHtml = IS_SUPERUSER
             ? `<button type="button"
                        class="button button-danger"
                        title="Delete"
-                       onclick="handleDeleteAchievement('${achievementId}', '${escapeHtml(achievement.title.replace(/'/g, "\\'"))}', '${deleteUrl}')">Delete</button>`
+                       onclick="handleDeleteAchievement('${achievementId}', '${escapeHtml(achievement.title)}')">Delete</button>`
             : '';
 
         const div = document.createElement('div');
         div.className = 'achievement-item';
         div.id = `achievement-item-${achievementId}`;
         div.innerHTML = `
-            <span class="achievement-icon">${escapeHtml(achievement.icon)}</span>
+            <span class="achievement-icon">${escapeHtml(achievement.icon || '🏆')}</span>
             <div class="achievement-content">
                 <p class="achievement-year">${escapeHtml(String(achievement.year))}</p>
                 <h4>${escapeHtml(achievement.title)}</h4>
@@ -213,24 +210,141 @@
         return div;
     }
 
-    // ─── Delete Handler ───────────────────────────────────────────────────────
-    async function handleDeleteAchievement(achievementId, achievementTitle, deleteUrl) {
-        if (!confirm(`Delete achievement "${achievementTitle}"?`)) return;
+    // ─── Toggle Star Handler ──────────────────────────────────────────────────
+    async function handleToggleStar(achievementId) {
+        if (!IS_AUTHENTICATED) {
+            showToast('Login Required', 'You must log in to star an achievement.', 'error');
+            setTimeout(() => { window.location.href = LOGIN_URL; }, 1500);
+            return;
+        }
+
         try {
-            const response = await fetch(deleteUrl, {
+            const response = await fetch(`${BASE_ACHIEVEMENTS_ENDPOINT}${achievementId}/star/`, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
             });
-            const data = await response.json();
-            if (data.success) {
-                showToast('Deleted', 'Achievement removed successfully.', 'success');
-                fetchAchievements(searchInput.value.trim());
+
+            if (response.ok) {
+                const updated = await response.json();
+                cachedAchievements.set(achievementId, updated);
+
+                const starBtn = document.getElementById(`star-btn-${achievementId}`);
+                const starText = document.getElementById(`star-text-${achievementId}`);
+                const starCount = document.getElementById(`star-count-${achievementId}`);
+
+                if (starBtn && starText && starCount) {
+                    starBtn.classList.toggle('is-starred', updated.is_starred);
+                    starText.textContent = updated.is_starred ? 'Unstar' : 'Star';
+                    starCount.textContent = updated.star_count;
+                    starBtn.title = updated.star_count > 0
+                        ? `Starred by ${updated.starred_by_names}`
+                        : 'Be the first to star';
+                }
             } else {
-                 showToast('Error', data.message || 'Failed to delete achievement.', 'error');
+                const data = await response.json().catch(() => ({}));
+                showToast('Failed to Star', data.detail || 'Could not toggle star.', 'error');
             }
         } catch (err) {
+            console.error('Star error:', err);
+            showToast('Error', 'Network error while updating star.', 'error');
+        }
+    }
+
+    // ─── Delete Handler ───────────────────────────────────────────────────────
+    async function handleDeleteAchievement(achievementId, achievementTitle) {
+        if (!confirm(`Delete achievement "${achievementTitle}"?`)) return;
+
+        try {
+            const response = await fetch(`${BASE_ACHIEVEMENTS_ENDPOINT}${achievementId}/`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            });
+
+            if (response.status === 204) {
+                showToast('Deleted', 'Achievement removed successfully.', 'success');
+                const item = document.getElementById(`achievement-item-${achievementId}`);
+                if (item) item.remove();
+                cachedAchievements.delete(achievementId);
+                fetchAchievements(searchInput.value.trim());
+            } else {
+                const data = await response.json().catch(() => ({}));
+                showToast('Error', data.detail || 'Failed to delete achievement.', 'error');
+            }
+        } catch (err) {
+            console.error('Delete error:', err);
             showToast('Error', 'Failed to delete achievement.', 'error');
         }
+    }
+
+    // ─── Edit Modal Handlers ──────────────────────────────────────────────────
+    const editModal = document.getElementById('edit-achievement-modal');
+    const editForm = document.getElementById('edit-achievement-form');
+
+    function openEditAchievementModal(achievementId) {
+        const ach = cachedAchievements.get(achievementId);
+        if (!ach || !editModal || !editForm) return;
+
+        document.getElementById('edit-achievement-id').value = ach.id;
+        document.getElementById('edit-achievement-title').value = ach.title;
+        document.getElementById('edit-achievement-description').value = ach.description;
+        document.getElementById('edit-achievement-year').value = ach.year;
+        document.getElementById('edit-achievement-category').value = ach.category;
+        document.getElementById('edit-achievement-icon').value = ach.icon || '🏆';
+        document.getElementById('edit-achievement-image').value = ach.image || '';
+
+        editModal.showPopover();
+    }
+
+    if (editForm) {
+        editForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const submitBtn = editForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+
+            const achievementId = document.getElementById('edit-achievement-id').value;
+            const payload = {
+                title: document.getElementById('edit-achievement-title').value.trim(),
+                description: document.getElementById('edit-achievement-description').value.trim(),
+                year: parseInt(document.getElementById('edit-achievement-year').value, 10),
+                category: document.getElementById('edit-achievement-category').value,
+                icon: document.getElementById('edit-achievement-icon').value.trim() || '🏆',
+                image: document.getElementById('edit-achievement-image').value.trim() || null,
+            };
+
+            try {
+                const response = await fetch(`${BASE_ACHIEVEMENTS_ENDPOINT}${achievementId}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    if (editModal) editModal.hidePopover();
+                    showToast('Success', 'Achievement updated successfully!', 'success');
+                    fetchAchievements(searchInput.value.trim());
+                } else {
+                    const errors = [];
+                    for (const [field, msgs] of Object.entries(data)) {
+                        const msgList = Array.isArray(msgs) ? msgs.join(', ') : msgs;
+                        errors.push(`${field}: ${msgList}`);
+                    }
+                    showToast('Validation Error', errors.join(' ') || data.detail || 'Failed to update achievement.', 'error');
+                }
+            } catch (err) {
+                console.error('Update error:', err);
+                showToast('Error', 'Network error while updating achievement.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
     }
 
     // ─── Fetch Achievements ───────────────────────────────────────────────────
@@ -242,7 +356,7 @@
             displayPageSection({ showLoading: true });
 
             const url = searchQuery
-                ? `${BASE_ACHIEVEMENTS_ENDPOINT}?title=${encodeURIComponent(searchQuery)}`
+                ? `${BASE_ACHIEVEMENTS_ENDPOINT}?search=${encodeURIComponent(searchQuery)}`
                 : BASE_ACHIEVEMENTS_ENDPOINT;
 
             const response = await fetch(url, {
@@ -254,14 +368,14 @@
 
             const data = await response.json();
 
-            const academicData = data.filter(a => a.fields.category === 'academic').sort((a,b) => b.fields.year - a.fields.year);
-            const nonAcademicData = data.filter(a => a.fields.category === 'non_academic').sort((a,b) => b.fields.year - a.fields.year);
-            const carouselData = data.filter(a => a.fields.image);
-
-            if (data.length === 0) {
+            if (!Array.isArray(data) || data.length === 0) {
                 displayPageSection({ showEmpty: true });
                 return;
             }
+
+            const academicData = data.filter(a => a.category === 'academic').sort((a,b) => b.year - a.year);
+            const nonAcademicData = data.filter(a => a.category === 'non_academic').sort((a,b) => b.year - a.year);
+            const carouselData = data.filter(a => a.image);
 
             academicList.innerHTML = '';
             academicData.forEach(item => academicList.appendChild(buildAchievementElement(item)));
@@ -274,8 +388,8 @@
                 const card = document.createElement('div');
                 card.className = 'carousel-card';
                 card.innerHTML = `
-                    <img src="${escapeHtml(item.fields.image)}" alt="${escapeHtml(item.fields.title)}">
-                    <p>${escapeHtml(item.fields.title)}</p>
+                    <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}">
+                    <p>${escapeHtml(item.title)}</p>
                 `;
                 certCarousel.appendChild(card);
             });
@@ -325,10 +439,14 @@
         submitButton.disabled = true;
 
         try {
-            const response = await fetch(CREATE_ACHIEVEMENT_ENDPOINT, {
+            const formData = new FormData(achievementForm);
+            const response = await fetch(BASE_ACHIEVEMENTS_ENDPOINT, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                body: new FormData(achievementForm),
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Accept': 'application/json',
+                },
+                body: formData,
             });
             const result = await response.json().catch(() => ({}));
 
@@ -338,10 +456,12 @@
                 showToast('Success', 'New achievement added successfully!', 'success');
                 fetchAchievements(searchInput.value.trim());
             } else {
-                const errorMessages = result.errors
-                    ? Object.values(result.errors).flat().map(e => e.message)
-                    : [result.message || `An error occurred (status ${response.status}).`];
-                showToast('Failed to add achievement', errorMessages.join(' '), 'error');
+                const errors = [];
+                for (const [field, msgs] of Object.entries(result)) {
+                    const msgList = Array.isArray(msgs) ? msgs.join(', ') : msgs;
+                    errors.push(`${field}: ${msgList}`);
+                }
+                showToast('Failed to add achievement', errors.join(' ') || result.detail || 'Could not add achievement.', 'error');
             }
         } catch (error) {
             console.error('Error adding achievement:', error);

@@ -1,7 +1,7 @@
 from django.utils.html import strip_tags
 from rest_framework import serializers
 
-from main.models import Education, Experience, Skill
+from main.models import Achievement, Education, Experience, Skill
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +173,75 @@ class ExperienceSerializer(serializers.ModelSerializer):
         if value:
             return strip_tags(value).strip()
         return ""
+
+    def get_category_display(self, obj):
+        return obj.get_category_display()
+
+    def get_star_count(self, obj):
+        return obj.starred_by.count()
+
+    def get_is_starred(self, obj):
+        request = self.context.get("request")
+        if request is None or not request.user.is_authenticated:
+            return False
+        return obj.starred_by.filter(pk=request.user.pk).exists()
+
+    def get_starred_by_names(self, obj):
+        return ", ".join(user.username for user in obj.starred_by.all())
+
+
+# ---------------------------------------------------------------------------
+# Achievement
+# ---------------------------------------------------------------------------
+class AchievementSerializer(serializers.ModelSerializer):
+    category_display = serializers.SerializerMethodField()
+    star_count = serializers.SerializerMethodField()
+    is_starred = serializers.SerializerMethodField()
+    starred_by_names = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Achievement
+        fields = [
+            "id",
+            "title",
+            "description",
+            "year",
+            "category",
+            "category_display",
+            "icon",
+            "image",
+            "star_count",
+            "is_starred",
+            "starred_by_names",
+        ]
+        read_only_fields = ["id"]
+
+    def validate_title(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError("Achievement title cannot be empty.")
+        return value
+
+    def validate_description(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError("Achievement description cannot be empty.")
+        return value
+
+    def validate_icon(self, value):
+        if value:
+            return strip_tags(value).strip()
+        return "🏆"
+
+    def validate_image(self, value):
+        if value:
+            return strip_tags(value).strip()
+        return ""
+
+    def validate_year(self, value):
+        if value is not None and (value < 1900 or value > 2100):
+            raise serializers.ValidationError("Please provide a realistic year between 1900 and 2100.")
+        return value
 
     def get_category_display(self, obj):
         return obj.get_category_display()

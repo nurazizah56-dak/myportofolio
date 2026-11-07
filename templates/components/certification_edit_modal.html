@@ -1,0 +1,40 @@
+<div id="edit-certification-modal" class="project-form-modal" popover="auto" role="dialog" aria-modal="true" aria-labelledby="edit-certification-modal-title">
+    <button type="button" class="project-form-modal__backdrop" popovertarget="edit-certification-modal" popovertargetaction="hide" aria-label="Close edit certification form"></button>
+    <div class="project-form-modal__content">
+        <button type="button" class="project-form-modal__close" popovertarget="edit-certification-modal" popovertargetaction="hide" aria-label="Close edit certification form">&times;</button>
+        <h2 id="edit-certification-modal-title">Edit Certification</h2>
+        <form id="edit-certification-form" class="project-form">
+            {% csrf_token %}
+            <input type="hidden" id="edit-certification-id" name="id">
+            <div class="form-group">
+                <label for="edit-certification-title">Title</label>
+                <input type="text" id="edit-certification-title" name="title" class="form-control" required placeholder="Python Programming Certificate">
+            </div>
+            <div class="form-group">
+                <label for="edit-certification-issuer">Issuer</label>
+                <input type="text" id="edit-certification-issuer" name="issuer" class="form-control" required placeholder="Dicoding Indonesia">
+            </div>
+            <div class="form-group">
+                <label for="edit-certification-date-range">Date Range</label>
+                <input type="text" id="edit-certification-date-range" name="date_range" class="form-control" required placeholder="July 2025 - July 2027">
+            </div>
+            <div class="form-group">
+                <label for="edit-certification-description">Description</label>
+                <textarea id="edit-certification-description" name="description" class="form-control" rows="3" placeholder="Short description (optional)"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="edit-certification-icon">Icon (emoji)</label>
+                <input type="text" id="edit-certification-icon" name="icon" class="form-control" placeholder="📜">
+            </div>
+            <div class="form-group">
+                <label for="edit-certification-image">Certificate Image Path (optional)</label>
+                <input type="text" id="edit-certification-image" name="image" class="form-control" placeholder="/static/img/cert.png">
+            </div>
+            <div class="project-form-modal__actions">
+                <button type="button" class="button button-secondary" popovertarget="edit-certification-modal" popovertargetaction="hide">Cancel</button>
+                <button type="submit" class="button">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+

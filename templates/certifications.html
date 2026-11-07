@@ -26,7 +26,7 @@
                        id="certification-search-input"
                        name="title"
                        value="{{ title_query }}"
-                       placeholder="Search by certification title"
+                       placeholder="Search by certification title..."
                        class="project-search__input"
                        aria-label="Search by certification title">
                 <button type="submit" class="button">Search</button>
@@ -56,17 +56,22 @@
     {% include "components/certification_form_modal.html" %}
 {% endif %}
 
+{% if user.is_superuser or is_editor %}
+    {% include "components/certification_edit_modal.html" %}
+{% endif %}
+
 {% endblock content %}
 
 {% block extra_js %}
 <script>
     // ─── Configuration ────────────────────────────────────────────────────────
-    const BASE_CERTIFICATIONS_ENDPOINT = "{% url 'main:get_certification_json' %}";
-    {% if user.is_superuser %}
-    const CREATE_CERTIFICATION_ENDPOINT = "{% url 'main:create_certification_ajax' %}";
-    {% endif %}
+    const BASE_CERTIFICATIONS_ENDPOINT = "{% url 'api:certification-list' %}";
+    const CERTIFICATION_DETAIL_TEMPLATE = "{% url 'api:certification-detail' '00000000-0000-0000-0000-000000000000' %}";
+    const CERTIFICATION_STAR_TEMPLATE = "{% url 'api:certification-star' '00000000-0000-0000-0000-000000000000' %}";
     const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
     const IS_EDITOR = "{{ is_editor|yesno:'true,false' }}" === "true";
+    const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
+    const LOGIN_URL = "{% url 'main:login' %}";
     const SEARCH_DEBOUNCE_DELAY = 300;
 
     // ─── DOM References ───────────────────────────────────────────────────────
@@ -79,6 +84,7 @@
 
     let certificationsAbortController;
     let searchDebounceTimer;
+    let cachedCertifications = new Map();
 
     // ─── XSS Protection ──────────────────────────────────────────────────────
     function escapeHtml(value) {
@@ -115,65 +121,45 @@
     }
 
     // ─── Build Certification Element ──────────────────────────────────────────
-    function buildCertificationElement(item) {
-        const cert = item.fields;
-        const certId = item.pk;
-
-        const starUrl = "{% url 'main:toggle_star_certification' '00000000-0000-0000-0000-000000000000' %}"
-            .replace('00000000-0000-0000-0000-000000000000', certId);
-        const editUrl = "{% url 'main:update_certification' '00000000-0000-0000-0000-000000000000' %}"
-            .replace('00000000-0000-0000-0000-000000000000', certId);
-        const deleteUrl = "{% url 'main:delete_certification' '00000000-0000-0000-0000-000000000000' %}"
-            .replace('00000000-0000-0000-0000-000000000000', certId);
-
+    function buildCertificationElement(cert) {
+        const certId = cert.id;
         const isStarredClass = cert.is_starred ? ' is-starred' : '';
         const starTitle = cert.star_count > 0
             ? `Starred by ${escapeHtml(cert.starred_by_names)}`
             : 'Be the first to star';
 
-        const editHtml = (IS_SUPERUSER || IS_EDITOR)
-            ? `<a href="${editUrl}" class="button" title="Edit">Edit</a>`
-            : '';
-
         const starHtml = `
-            <form method="post" action="${starUrl}" class="star-form">
-                {% csrf_token %}
-                <button type="submit"
-                        class="button button-star${isStarredClass}"
-                        title="${escapeHtml(starTitle)}">
-                    <span aria-hidden="true">★</span>
-                    ${cert.is_starred ? 'Unstar' : 'Star'}
-                    <span class="star-count">${cert.star_count}</span>
-                </button>
-            </form>`;
+            <button type="button"
+                    class="button button-star${isStarredClass}"
+                    data-id="${escapeHtml(certId)}"
+                    title="${escapeHtml(starTitle)}"
+                    onclick="handleStarToggle('${escapeHtml(certId)}')">
+                <span aria-hidden="true">★</span>
+                <span class="star-label">${cert.is_starred ? 'Unstar' : 'Star'}</span>
+                <span class="star-count">${cert.star_count}</span>
+            </button>`;
+
+        const editHtml = (IS_SUPERUSER || IS_EDITOR)
+            ? `<button type="button" class="button" title="Edit" onclick="openEditModal('${escapeHtml(certId)}')">Edit</button>`
+            : '';
 
         const deleteHtml = IS_SUPERUSER
             ? `<button type="button"
                        class="button button-danger"
                        title="Delete"
-                       onclick="handleDeleteCertification('${certId}', '${escapeHtml(cert.title.replace(/'/g, "\\'"))}', '${deleteUrl}')">Delete</button>`
+                       onclick="handleDeleteCertification('${escapeHtml(certId)}', '${escapeHtml(cert.title.replace(/'/g, "\\'"))}')">Delete</button>`
             : '';
 
-        // Model field changed based on form changes: issue_date & expiry_date instead of date_range
-        // In the original, it was date_range. Since I modified views.py to output issue_date and expiry_date,
-        // let me check views.py again. Ah, wait, in models it was probably date_range.
-        // I will use date_range if it exists, otherwise combine issue_date and expiry_date.
-        // Actually, my views.py replacement for get_certification_json used issue_date and expiry_date. Let me fix the display.
-        // Let's assume the model actually uses date_range based on forms.py `fields = ["title", "issuer", "date_range", "description", "icon", "image"]`.
-        // Let me adjust the JS to use date_range, or fallback if I wrote the view wrong.
-        // Since I replaced views.py assuming issue_date, let me use the field returned.
-        // I will re-verify views.py after this file.
-        const dateRangeText = cert.date_range ? escapeHtml(cert.date_range) : `${escapeHtml(cert.issue_date)} - ${cert.expiry_date ? escapeHtml(cert.expiry_date) : 'Present'}`;
+        const dateRangeText = escapeHtml(cert.date_range || '');
         const descHtml = cert.description ? ` • ${escapeHtml(cert.description)}` : '';
-        
         const imageHtml = cert.image ? `
-            <a href="${escapeHtml(cert.image)}" target="_blank">
+            <a href="${escapeHtml(cert.image)}" target="_blank" rel="noopener noreferrer">
                 <img src="${escapeHtml(cert.image)}" alt="${escapeHtml(cert.title)}" class="cert-preview">
             </a>` : '';
 
         const div = document.createElement('div');
         div.className = 'cert-item';
-        div.id = `cert-item-${certId}`;
+        div.id = `cert-item-${escapeHtml(certId)}`;
         div.innerHTML = `
             <span class="achievement-icon">${escapeHtml(cert.icon || '📜')}</span>
             <div class="cert-info">
@@ -190,24 +176,132 @@
         return div;
     }
 
+    // ─── Star Toggle Handler ──────────────────────────────────────────────────
+    async function handleStarToggle(certId) {
+        if (!IS_AUTHENTICATED) {
+            window.location.href = LOGIN_URL;
+            return;
+        }
+
+        const starUrl = CERTIFICATION_STAR_TEMPLATE.replace('00000000-0000-0000-0000-000000000000', certId);
+        try {
+            const response = await fetch(starUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                showToast('Error', 'Failed to toggle star.', 'error');
+                return;
+            }
+
+            const updatedCert = await response.json();
+            cachedCertifications.set(updatedCert.id, updatedCert);
+            const oldCard = document.getElementById(`cert-item-${updatedCert.id}`);
+            if (oldCard) {
+                oldCard.replaceWith(buildCertificationElement(updatedCert));
+            }
+            showToast('Success', updatedCert.is_starred ? 'Certification starred!' : 'Certification unstarred.', 'success');
+        } catch (err) {
+            console.error('Star error:', err);
+            showToast('Error', 'Network error while updating star.', 'error');
+        }
+    }
+
     // ─── Delete Handler ───────────────────────────────────────────────────────
-    async function handleDeleteCertification(certId, certTitle, deleteUrl) {
+    async function handleDeleteCertification(certId, certTitle) {
         if (!confirm(`Delete certification "${certTitle}"?`)) return;
+
+        const deleteUrl = CERTIFICATION_DETAIL_TEMPLATE.replace('00000000-0000-0000-0000-000000000000', certId);
         try {
             const response = await fetch(deleteUrl, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
             });
-            const data = await response.json();
-            if (data.success) {
+
+            if (response.status === 204 || response.ok) {
                 showToast('Deleted', 'Certification removed successfully.', 'success');
                 fetchCertifications(searchInput.value.trim());
             } else {
-                 showToast('Error', data.message || 'Failed to delete certification.', 'error');
+                showToast('Error', 'Failed to delete certification.', 'error');
             }
         } catch (err) {
+            console.error('Delete error:', err);
             showToast('Error', 'Failed to delete certification.', 'error');
         }
+    }
+
+    // ─── Edit Modal Helpers ───────────────────────────────────────────────────
+    function openEditModal(certId) {
+        const cert = cachedCertifications.get(certId);
+        if (!cert) return;
+
+        document.getElementById('edit-certification-id').value = cert.id;
+        document.getElementById('edit-certification-title').value = cert.title || '';
+        document.getElementById('edit-certification-issuer').value = cert.issuer || '';
+        document.getElementById('edit-certification-date-range').value = cert.date_range || '';
+        document.getElementById('edit-certification-description').value = cert.description || '';
+        document.getElementById('edit-certification-icon').value = cert.icon || '📜';
+        document.getElementById('edit-certification-image').value = cert.image || '';
+
+        const modal = document.getElementById('edit-certification-modal');
+        if (modal) {
+            modal.showPopover();
+        }
+    }
+
+    const editForm = document.getElementById('edit-certification-form');
+    if (editForm) {
+        editForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const certId = document.getElementById('edit-certification-id').value;
+            const submitBtn = editForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+
+            const payload = {
+                title: document.getElementById('edit-certification-title').value.trim(),
+                issuer: document.getElementById('edit-certification-issuer').value.trim(),
+                date_range: document.getElementById('edit-certification-date-range').value.trim(),
+                description: document.getElementById('edit-certification-description').value.trim(),
+                icon: document.getElementById('edit-certification-icon').value.trim() || '📜',
+                image: document.getElementById('edit-certification-image').value.trim()
+            };
+
+            const updateUrl = CERTIFICATION_DETAIL_TEMPLATE.replace('00000000-0000-0000-0000-000000000000', certId);
+            try {
+                const response = await fetch(updateUrl, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const modal = document.getElementById('edit-certification-modal');
+                    if (modal) modal.hidePopover();
+                    showToast('Success', 'Certification updated successfully!', 'success');
+                    fetchCertifications(searchInput.value.trim());
+                } else {
+                    const errors = typeof data === 'object'
+                        ? Object.entries(data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' ')
+                        : 'Failed to update certification.';
+                    showToast('Update Failed', errors, 'error');
+                }
+            } catch (err) {
+                console.error('Edit error:', err);
+                showToast('Error', 'Network error while updating certification.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
     }
 
     // ─── Fetch Certifications ─────────────────────────────────────────────────
@@ -219,7 +313,7 @@
             displayPageSection({ showLoading: true });
 
             const url = searchQuery
-                ? `${BASE_CERTIFICATIONS_ENDPOINT}?title=${encodeURIComponent(searchQuery)}`
+                ? `${BASE_CERTIFICATIONS_ENDPOINT}?search=${encodeURIComponent(searchQuery)}`
                 : BASE_CERTIFICATIONS_ENDPOINT;
 
             const response = await fetch(url, {
@@ -231,14 +325,16 @@
 
             const data = await response.json();
 
-            if (data.length === 0) {
+            if (!Array.isArray(data) || data.length === 0) {
                 displayPageSection({ showEmpty: true });
                 return;
             }
 
+            cachedCertifications.clear();
             certList.innerHTML = '';
-            data.sort((a, b) => a.fields.title.localeCompare(b.fields.title)).forEach(item => {
-                certList.appendChild(buildCertificationElement(item));
+            data.forEach(cert => {
+                cachedCertifications.set(cert.id, cert);
+                certList.appendChild(buildCertificationElement(cert));
             });
 
             displayPageSection({ showList: true });
@@ -280,11 +376,23 @@
         const submitButton = certificationForm.querySelector('button[type="submit"]');
         submitButton.disabled = true;
 
+        const formData = new FormData(certificationForm);
+        const payload = {};
+        for (const [key, value] of formData.entries()) {
+            if (key !== 'csrfmiddlewaretoken') {
+                payload[key] = value;
+            }
+        }
+
         try {
-            const response = await fetch(CREATE_CERTIFICATION_ENDPOINT, {
+            const response = await fetch(BASE_CERTIFICATIONS_ENDPOINT, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                body: new FormData(certificationForm),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload),
             });
             const result = await response.json().catch(() => ({}));
 
@@ -294,10 +402,10 @@
                 showToast('Success', 'New certification added successfully!', 'success');
                 fetchCertifications(searchInput.value.trim());
             } else {
-                const errorMessages = result.errors
-                    ? Object.values(result.errors).flat().map(e => e.message)
-                    : [result.message || `An error occurred (status ${response.status}).`];
-                showToast('Failed to add certification', errorMessages.join(' '), 'error');
+                const errorMessages = typeof result === 'object'
+                    ? Object.entries(result).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' ')
+                    : 'Failed to add certification.';
+                showToast('Failed to add certification', errorMessages, 'error');
             }
         } catch (error) {
             console.error('Error adding certification:', error);

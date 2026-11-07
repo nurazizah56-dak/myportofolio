@@ -20,4 +20,8 @@ urlpatterns = [
     path("achievements/", api_views.achievement_list, name="achievement-list"),
     path("achievements/<uuid:achievement_id>/", api_views.achievement_detail, name="achievement-detail"),
     path("achievements/<uuid:achievement_id>/star/", api_views.achievement_star, name="achievement-star"),
+    # Certification
+    path("certifications/", api_views.certification_list, name="certification-list"),
+    path("certifications/<uuid:certification_id>/", api_views.certification_detail, name="certification-detail"),
+    path("certifications/<uuid:certification_id>/star/", api_views.certification_star, name="certification-star"),
 ]

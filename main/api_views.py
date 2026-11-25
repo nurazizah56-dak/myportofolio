@@ -1,7 +1,7 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -26,7 +26,7 @@ from main.serializers import (
 # Education
 # ---------------------------------------------------------------------------
 @api_view(["GET", "HEAD", "POST"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def education_list(request):
     if request.method in ("GET", "HEAD"):
@@ -52,7 +52,7 @@ def education_list(request):
 
 
 @api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def education_detail(request, education_id):
     education = get_object_or_404(
@@ -78,7 +78,7 @@ def education_detail(request, education_id):
 
 
 @api_view(["POST"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def education_star(request, education_id):
     education = get_object_or_404(Education, pk=education_id)

@@ -104,3 +104,19 @@ class Certification(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Project(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    tech_stack = models.CharField(max_length=255)
+    project_url = models.URLField()
+    project_image_url = models.URLField(blank=True, default="")
+    starred_by = models.ManyToManyField(User, related_name="starred_projects", blank=True)
+
+    class Meta:
+        ordering = ['title']
+
+    def __str__(self):
+        return self.title

@@ -1,7 +1,7 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -10,13 +10,14 @@ from rest_framework.decorators import (
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from main.models import Achievement, Certification, Education, Experience, Skill
-from main.permissions import IsPortfolioOwnerOrEditorOrReadOnly
+from main.models import Achievement, Certification, Education, Experience, Project, Skill
+from main.permissions import IsPortfolioOwnerOrEditorOrReadOnly, IsPortfolioOwnerOrReadOnly
 from main.serializers import (
     AchievementSerializer,
     CertificationSerializer,
     EducationSerializer,
     ExperienceSerializer,
+    ProjectSerializer,
     SkillSerializer,
 )
 
@@ -25,7 +26,7 @@ from main.serializers import (
 # Education
 # ---------------------------------------------------------------------------
 @api_view(["GET", "HEAD", "POST"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def education_list(request):
     if request.method in ("GET", "HEAD"):
@@ -51,7 +52,7 @@ def education_list(request):
 
 
 @api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def education_detail(request, education_id):
     education = get_object_or_404(
@@ -77,7 +78,7 @@ def education_detail(request, education_id):
 
 
 @api_view(["POST"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def education_star(request, education_id):
     education = get_object_or_404(Education, pk=education_id)
@@ -364,4 +365,63 @@ def certification_star(request, certification_id):
         certification.starred_by.add(request.user)
     serializer = CertificationSerializer(certification, context={"request": request})
     return Response(serializer.data)
+
+
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def api_logout(request):
+    if request.auth is not None:
+        request.auth.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ---------------------------------------------------------------------------
+# Project
+# ---------------------------------------------------------------------------
+@api_view(["GET", "HEAD", "POST"])
+@permission_classes([IsPortfolioOwnerOrReadOnly])
+def project_list(request):
+    if request.method in ("GET", "HEAD"):
+        projects = Project.objects.all().order_by("title")
+        q = request.query_params.get("q", "").strip() or request.query_params.get("search", "").strip()
+        if q:
+            projects = projects.filter(
+                Q(title__icontains=q) |
+                Q(description__icontains=q) |
+                Q(tech_stack__icontains=q)
+            )
+        serializer = ProjectSerializer(projects, many=True, context={"request": request})
+        return Response(serializer.data)
+
+    serializer = ProjectSerializer(data=request.data, context={"request": request})
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
+@permission_classes([IsPortfolioOwnerOrReadOnly])
+def project_detail(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    if request.method in ("GET", "HEAD"):
+        serializer = ProjectSerializer(project, context={"request": request})
+        return Response(serializer.data)
+
+    if request.method == "DELETE":
+        project.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = ProjectSerializer(
+        project,
+        data=request.data,
+        partial=(request.method == "PATCH"),
+        context={"request": request},
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data)
+
 

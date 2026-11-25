@@ -1,7 +1,7 @@
 from django.utils.html import strip_tags
 from rest_framework import serializers
 
-from main.models import Achievement, Certification, Education, Experience, Skill
+from main.models import Achievement, Certification, Education, Experience, Project, Skill
 
 
 # ---------------------------------------------------------------------------
@@ -464,3 +464,49 @@ class CertificationSerializer(serializers.ModelSerializer):
 
     def get_starred_by_names(self, obj):
         return ", ".join(user.username for user in obj.starred_by.all())
+
+
+# ---------------------------------------------------------------------------
+# Project
+# ---------------------------------------------------------------------------
+class ProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = [
+            "id",
+            "title",
+            "description",
+            "tech_stack",
+            "project_url",
+            "project_image_url",
+        ]
+        read_only_fields = ["id"]
+
+    def validate_title(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError("Title cannot be empty.")
+        return value
+
+    def validate_description(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError("Description cannot be empty.")
+        return value
+
+    def validate_tech_stack(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError("Tech stack cannot be empty.")
+        return value
+
+    def validate_project_url(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError("Project URL cannot be empty.")
+        return value
+
+    def validate_project_image_url(self, value):
+        if value:
+            return strip_tags(value).strip()
+        return ""
